@@ -3,4 +3,9 @@
     <string name="Title">Networked Score Tracker</string>
     <string name="PlayerLabel">Player:</string>
     <string name="PlayerHint">Player Name</string>
+    <string name="NewGame_button">New Game</string>
+    <string name="JoinGame_button">Join Game</string>
+    <string name="NewGameTitle_textView">New Game!</string>
+    <string name="hostLabel">Host:</string>
+    <string name="startGameServerButton">Start!</string>
 </resources>
