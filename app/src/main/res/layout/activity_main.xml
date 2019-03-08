@@ -15,8 +15,8 @@
         android:layout_marginTop="16dp"
         android:layout_marginEnd="16dp"
         android:layout_marginRight="16dp"
-        android:text="Network Score Tracker"
-        android:textSize="30sp"
+        android:text="@string/Title"
+        android:textSize="24sp"
         app:fontFamily="sans-serif-black"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -29,7 +29,7 @@
         android:layout_marginStart="16dp"
         android:layout_marginLeft="16dp"
         android:layout_marginTop="55dp"
-        android:text="Player:"
+        android:text="@string/PlayerLabel"
         android:textSize="24sp"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/textView" />
@@ -42,9 +42,8 @@
         android:layout_marginLeft="16dp"
         android:layout_marginTop="52dp"
         android:ems="10"
-        android:hint="Set Player Name"
+        android:hint="@string/PlayerHint"
         android:inputType="textPersonName"
-        android:text="Name"
         app:layout_constraintStart_toEndOf="@+id/PlayerLabel"
         app:layout_constraintTop_toBottomOf="@+id/textView" />
 </android.support.constraint.ConstraintLayout>
