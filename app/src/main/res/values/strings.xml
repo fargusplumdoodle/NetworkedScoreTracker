@@ -7,5 +7,6 @@
     <string name="JoinGame_button">Join Game</string>
     <string name="NewGameTitle_textView">New Game!</string>
     <string name="hostLabel">Host:</string>
-    <string name="startGameServerButton">Start!</string>
+    <string name="startGameServerButton">Start Game!</string>
+    <string name="joinedPlayersLabel">Joined Players:</string>
 </resources>
