@@ -9,7 +9,8 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
-        <activity android:name=".inGameServerActivity"></activity>
+        <activity android:name=".JoinGameActivity"></activity>
+        <activity android:name=".inGameServerActivity" />
         <activity android:name=".NewGameActivity" />
         <activity android:name=".MainActivity">
             <intent-filter>

@@ -16,4 +16,5 @@
     <string name="plus1Button">+1</string>
     <string name="minus1Button">-1</string>
     <string name="submitButton">Submit</string>
+    <string name="searchForGameButton">Search for game</string>
 </resources>

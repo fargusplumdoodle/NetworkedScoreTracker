@@ -1,8 +1,8 @@
 package ra.sekhnet.networkedscoretracker;
 
 import android.content.Intent;
-import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.app.AppCompatActivity;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.TextView;
@@ -49,6 +49,15 @@ public class MainActivity extends AppCompatActivity {
 
     public void newGame(View view){
         Intent intent = new Intent(this, NewGameActivity.class);
+        EditText playerNameEditText = (EditText) findViewById(R.id.PlayerNameEditText);
+
+        // passing player name to newGame page
+        intent.putExtra(PLAYER_NAME, playerNameEditText.getText().toString());
+        startActivity(intent);
+    }
+
+    public void joinGame(View view){
+        Intent intent = new Intent(this, JoinGameActivity.class);
         EditText playerNameEditText = (EditText) findViewById(R.id.PlayerNameEditText);
 
         // passing player name to newGame page

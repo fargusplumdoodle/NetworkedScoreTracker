@@ -53,6 +53,13 @@ public class inGameServerActivity extends AppCompatActivity {
         this.printPlayerInfo();
         this.updatePlayerInfo();
     }
+
+    public void loseGame(View view){
+        setPlayerHealth(playerName, 0);
+        updateOwnHealth();
+        updatePlayerInfo();
+    }
+
     public void submitHealth(View view){
         EditText life = (EditText) findViewById(R.id.lifeTotalEditText);
         int newHealth = Integer.parseInt(life.getText().toString());
