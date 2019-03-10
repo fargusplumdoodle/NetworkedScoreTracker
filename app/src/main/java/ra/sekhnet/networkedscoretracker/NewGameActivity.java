@@ -11,14 +11,17 @@ import android.widget.TextView;
 import static ra.sekhnet.networkedscoretracker.MainActivity.PLAYER_NAME;
 
 public class NewGameActivity extends AppCompatActivity {
+
     public String playerName;
+    public String[] client_players;
+    public String[] client_ip;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_new_game);
 
-        // getting playername
+        // getting player name
         Intent intent = getIntent();
         playerName = intent.getStringExtra(PLAYER_NAME);
 
@@ -32,36 +35,34 @@ public class NewGameActivity extends AppCompatActivity {
 
     private void getPlayerList(){
         // this just gets each player who has joined the game and puts it in a list
-        String[] players = {"Dylan", "Liyani", "Cody"};
+        String[] clientNames = {"Dylan", "Liyani", "Cody"};
+
+        // populating players list
+        client_players = new String[ clientNames.length];
+        client_ip = new String[ clientNames.length];
+
+        for (int i = 0; i <  clientNames.length; i++){
+            client_players[i] =  clientNames[i];
+            client_ip[i] = "fake_ip";
+        }
 
         ArrayAdapter<String> adapter = new ArrayAdapter<String>(this,
                 android.R.layout.simple_list_item_1,
-                players);
+                 clientNames);
         ListView listView = (ListView) findViewById(R.id.joinedPlayerListView);
         listView.setAdapter(adapter);
-        /*
-        List<HashMap<String, String>> aList = new ArrayList<HashMap<String, String>>();
-
-        for (int i = 0; i < players.length; i++){
-            // populating list, you could add the players health
-            HashMap<String, String> hm = new HashMap<String, String>();
-            hm.put("PlayerName", players[i]);
-            aList.add(hm);
-        }
-
-        String[] from = {"PlayerName"};
-        int[] to = {R.id.joinedPlayerListView};
-
-        SimpleAdapter theAdapter = new SimpleAdapter(getBaseContext(), aList, R.layout.activity_new_game, from, to);
-        ListView theListView = (ListView) findViewById(R.id.joinedPlayerListView);
-        theListView.setAdapter(theAdapter);
-        */
     }
 
     public void startGame(View view){
-        Intent intent = new Intent(this, inGame.class);
+        Intent intent = new Intent(this, inGameServerActivity.class);
 
+        // passing player name
         intent.putExtra(PLAYER_NAME, playerName);
+
+        // passing in clients
+        intent.putExtra("CLIENT_PLAYER_LIST", client_players);
+        intent.putExtra("CLIENT_IP_LIST", client_ip);
+
         startActivity(intent);
     }
 }
