@@ -38,13 +38,17 @@ public class NewGameActivity extends AppCompatActivity {
         String[] clientNames = {"Dylan", "Liyani", "Cody"};
 
         // populating players list
-        client_players = new String[ clientNames.length];
-        client_ip = new String[ clientNames.length];
-
+        client_players = new String[clientNames.length + 1];
+        client_ip = new String[clientNames.length + 1];
         for (int i = 0; i <  clientNames.length; i++){
             client_players[i] =  clientNames[i];
             client_ip[i] = "fake_ip";
         }
+
+        // adding host to player list
+        client_players[client_players.length - 1] = playerName;
+        client_ip[client_ip.length - 1] = "HOST";
+
 
         ArrayAdapter<String> adapter = new ArrayAdapter<String>(this,
                 android.R.layout.simple_list_item_1,
