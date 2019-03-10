@@ -74,6 +74,7 @@
         android:layout_marginStart="16dp"
         android:layout_marginLeft="16dp"
         android:layout_marginTop="16dp"
+        android:onClick="minusFive"
         android:text="@string/minus5Button"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/lifeTotalEditText" />
@@ -85,6 +86,7 @@
         android:layout_marginStart="8dp"
         android:layout_marginLeft="8dp"
         android:layout_marginTop="16dp"
+        android:onClick="minusOne"
         android:text="@string/minus1Button"
         app:layout_constraintStart_toEndOf="@+id/button4"
         app:layout_constraintTop_toBottomOf="@+id/lifeTotalEditText" />
@@ -96,6 +98,7 @@
         android:layout_marginStart="8dp"
         android:layout_marginLeft="8dp"
         android:layout_marginTop="14dp"
+        android:onClick="plusOne"
         android:text="@string/plus1Button"
         app:layout_constraintStart_toEndOf="@+id/button5"
         app:layout_constraintTop_toBottomOf="@+id/lifeTotalEditText" />
@@ -107,6 +110,7 @@
         android:layout_marginStart="8dp"
         android:layout_marginLeft="8dp"
         android:layout_marginTop="16dp"
+        android:onClick="plusFive"
         android:text="@string/plus5Button"
         app:layout_constraintStart_toEndOf="@+id/button6"
         app:layout_constraintTop_toBottomOf="@+id/lifeTotalEditText" />
@@ -120,6 +124,7 @@
         android:layout_marginTop="8dp"
         android:layout_marginEnd="32dp"
         android:layout_marginRight="32dp"
+        android:onClick="submitHealth"
         android:text="@string/submitButton"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
