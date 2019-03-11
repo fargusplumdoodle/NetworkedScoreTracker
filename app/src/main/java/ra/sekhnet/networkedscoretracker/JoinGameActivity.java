@@ -9,6 +9,7 @@ import static ra.sekhnet.networkedscoretracker.MainActivity.PLAYER_NAME;
 
 public class JoinGameActivity extends AppCompatActivity {
     private String playerName;
+    private String hostIP;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -34,15 +35,20 @@ public class JoinGameActivity extends AppCompatActivity {
     }
     public void searchForGame(){
         TextView status = (TextView) findViewById(R.id.gameSearchStatusLabel);
+        boolean foundGame = false;
 
         // here we would actually be searching for games, but we are just doing this now
         //TODO: GUI ISSUE: message does not show screen until onCreate is finished doing this
         try {
             Thread.sleep(5000);
+            foundGame = true;
         } catch (InterruptedException e) {
             System.out.println("Here we are, none of this matters");
         }
 
         status.setText("Found game!\nWaiting for game to start.");
+
+        // here we handle connecting to the game and such
+        // for now we just go to the inGameClientActivity
     }
 }

@@ -9,10 +9,14 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
-        <activity android:name=".JoinGameActivity"></activity>
-        <activity android:name=".inGameServerActivity" />
-        <activity android:name=".NewGameActivity" />
-        <activity android:name=".MainActivity">
+        <activity android:name=".JoinGameActivity"
+            android:screenOrientation="portrait"></activity>
+        <activity android:name=".inGameServerActivity"
+            android:screenOrientation="portrait"/>
+        <activity android:name=".NewGameActivity"
+            android:screenOrientation="portrait"/>
+        <activity android:name=".MainActivity"
+            android:screenOrientation="portrait">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
