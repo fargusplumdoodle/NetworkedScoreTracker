@@ -23,9 +23,6 @@ public class JoinGameActivity extends AppCompatActivity {
         // setting player name
         TextView playerNameTextView = (TextView) findViewById(R.id.playerNameLabelJoinGame);
         playerNameTextView.setText(playerName);
-
-        TextView status = (TextView) findViewById(R.id.gameSearchStatusLabel);
-        status.setText("Searching for games");
     }
     @Override
     protected void onStart(){
@@ -35,20 +32,22 @@ public class JoinGameActivity extends AppCompatActivity {
     }
     public void searchForGame(){
         TextView status = (TextView) findViewById(R.id.gameSearchStatusLabel);
-        boolean foundGame = false;
 
-        // here we would actually be searching for games, but we are just doing this now
-        //TODO: GUI ISSUE: message does not show screen until onCreate is finished doing this
-        try {
-            Thread.sleep(5000);
-            foundGame = true;
-        } catch (InterruptedException e) {
-            System.out.println("Here we are, none of this matters");
-        }
+        status.setText("Searching for games");
+
+        // here we would search for games
 
         status.setText("Found game!\nWaiting for game to start.");
 
         // here we handle connecting to the game and such
-        // for now we just go to the inGameClientActivity
+        hostIP = "TEMP";
+
+        // passing the IP of the game
+        Intent intent = new Intent(this, inGameClientActivity.class);
+
+        intent.putExtra("HOST_IP", hostIP);
+        intent.putExtra("PLAYER_NAME", playerName);
+
+        startActivity(intent);
     }
 }
