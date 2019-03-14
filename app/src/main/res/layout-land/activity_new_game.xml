@@ -8,16 +8,13 @@
 
     <TextView
         android:id="@+id/textView2"
-        android:layout_width="379dp"
-        android:layout_height="85dp"
+        android:layout_width="265dp"
+        android:layout_height="71dp"
         android:layout_marginStart="16dp"
         android:layout_marginLeft="16dp"
         android:layout_marginTop="16dp"
-        android:layout_marginEnd="16dp"
-        android:layout_marginRight="16dp"
         android:text="@string/NewGameTitle_textView"
         android:textSize="50sp"
-        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
@@ -27,7 +24,7 @@
         android:layout_height="wrap_content"
         android:layout_marginStart="16dp"
         android:layout_marginLeft="16dp"
-        android:layout_marginTop="52dp"
+        android:layout_marginTop="8dp"
         android:text="@string/hostLabel"
         android:textSize="24sp"
         app:layout_constraintStart_toStartOf="parent"
@@ -35,17 +32,13 @@
 
     <TextView
         android:id="@+id/PlayerNameViewServerNewGame"
-        android:layout_width="256dp"
-        android:layout_height="34dp"
-        android:layout_marginStart="16dp"
-        android:layout_marginLeft="16dp"
-        android:layout_marginTop="52dp"
-        android:layout_marginEnd="54dp"
-        android:layout_marginRight="54dp"
+        android:layout_width="196dp"
+        android:layout_height="33dp"
+        android:layout_marginStart="8dp"
+        android:layout_marginLeft="8dp"
+        android:layout_marginTop="8dp"
         android:text="TextView"
         android:textSize="24sp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintStart_toEndOf="@+id/textView3"
         app:layout_constraintTop_toBottomOf="@+id/textView2" />
 
@@ -54,42 +47,38 @@
         android:id="@+id/joinedPlayersLabel"
         android:layout_width="141dp"
         android:layout_height="45dp"
-        android:layout_marginStart="16dp"
-        android:layout_marginLeft="16dp"
-        android:layout_marginTop="32dp"
-        android:layout_marginEnd="262dp"
-        android:layout_marginRight="262dp"
+        android:layout_marginTop="16dp"
+        android:layout_marginEnd="241dp"
+        android:layout_marginRight="241dp"
         android:text="@string/joinedPlayersLabel"
         android:textSize="18sp"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/PlayerNameViewServerNewGame" />
+        app:layout_constraintTop_toTopOf="parent" />
 
     <ListView
         android:id="@+id/joinedPlayerListView"
-        android:layout_width="0dp"
-        android:layout_height="851dp"
-        android:layout_marginTop="459dp"
-        android:layout_marginBottom="32dp"
+        android:layout_width="366dp"
+        android:layout_height="304dp"
+        android:layout_marginStart="8dp"
+        android:layout_marginLeft="8dp"
+        android:layout_marginTop="92dp"
+        android:layout_marginBottom="8dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintHorizontal_bias="0.955"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/joinedPlayersLabel"
-        app:layout_constraintVertical_bias="0.483" />
+        app:layout_constraintTop_toTopOf="parent" />
 
     <Button
         android:id="@+id/startGameButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="61dp"
-        android:layout_marginLeft="61dp"
-        android:layout_marginEnd="109dp"
-        android:layout_marginRight="109dp"
+        android:layout_marginStart="32dp"
+        android:layout_marginLeft="32dp"
+        android:layout_marginBottom="32dp"
         android:onClick="startGame"
         android:text="@string/startGameServerButton"
-        app:layout_constraintBaseline_toBaselineOf="@+id/joinedPlayersLabel"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toEndOf="@+id/joinedPlayersLabel" />
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
 
 </android.support.constraint.ConstraintLayout>
