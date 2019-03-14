@@ -10,19 +10,19 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
         <activity android:name=".inGameClientActivity"
-            android:screenOrientation="portrait"></activity>
+            ></activity>
         <activity
             android:name=".JoinGameActivity"
-            android:screenOrientation="portrait" />
+             />
         <activity
             android:name=".inGameServerActivity"
-            android:screenOrientation="portrait" />
+             />
         <activity
             android:name=".NewGameActivity"
-            android:screenOrientation="portrait" />
+             />
         <activity
             android:name=".MainActivity"
-            android:screenOrientation="portrait">
+            >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
