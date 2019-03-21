@@ -2,11 +2,40 @@ import socket
 
 
 class NSAClient(object):
-    def __init__(self):
+    def __init__(self, name):
         self.port = 8989
+        self.packet_len = 1024
+        self.server_addr = ('localhost', self.port)
+        self.c = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+        self.name = name
+
+        self.join_game()
 
     def join_game(self):
-        pass
+        """
+        Protocol:
+            1. server listens
+            2. client connects through tcp
+            3. server says READY
+            4. clients send the name of the player ( e.g: "Fargus" )
+            5. server says OK
+
+        The server adds the clients connection to list of connections
+        """
+        # 2
+        self.c.connect(self.server_addr)
+
+        # 3
+        self.recv_expect("READY")
+
+        # 4
+        self.send(self.name)
+
+        # 5
+        self.recv_expect("OK")
+
+        print('Join game protocol complete')
 
     def start_game(self):
         pass
@@ -16,3 +45,19 @@ class NSAClient(object):
 
     def submit_life(self):
         pass
+
+    def recv_expect(self, expected_msg):
+        """
+        Throws error if message is not what was expected
+        :param expected_msg: a string that we are expecting from server
+        """
+        response = self.c.recv(self.packet_len).decode('utf-8')
+        if response != expected_msg:
+            raise ValueError('Error: Invalid response from server, expecting %s got %s' % (expected_msg, response))
+
+    def send(self, msg):
+        msg = msg.encode('utf-8')
+        self.c.send(msg)
+
+if __name__ == '__main__':
+    c = NSAClient('Fargus')
