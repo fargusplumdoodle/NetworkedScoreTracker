@@ -7,7 +7,7 @@ class NSAClient(threading.Thread):
     def __init__(self, name):
         super(NSAClient, self).__init__()
 
-        self.port = 8989
+        self.port = 8988
         self.packet_len = 1024
         self.server_addr = ('localhost', self.port)
         self.c = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -98,8 +98,28 @@ class NSAClient(threading.Thread):
         for p in self.player_lives:
             print("     %s:%s" % (p, self.player_lives[p]))
 
-    def submit_life(self):
-        pass
+    def submit_life(self, new_life):
+        """
+        Protocol:
+            1. listen for new life from client
+            2. client says NEW_LIFE
+            3. server says READY
+            4. client sends life as a positive integer
+            5. server sends new life to each player
+        """
+
+        # 2.
+        self.send("NEW_LIFE")
+
+        # 3.
+        self.recv_expect("READY")
+
+        # 4.
+        self.send(str(new_life))
+        print("send life")
+
+        # 5.
+        self.recv_expect("OK")
 
     def recv_expect(self, expected_msg):
         """
@@ -126,7 +146,7 @@ class NSAClient(threading.Thread):
             new_life = input("Enter new life as a positive integer")
             print("got life: %s however we havent implemented send life function" % new_life)
 
-            # self.submit_life(new_life)
+            self.submit_life(new_life)
 
 
 if __name__ == '__main__':

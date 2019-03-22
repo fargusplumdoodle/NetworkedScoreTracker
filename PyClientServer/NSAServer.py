@@ -19,7 +19,7 @@ class SockManager(threading.Thread):
         self.q = deque()
         self.active_conns = set()
         self.num_clients_served = 0
-        self.port = 8989
+        self.port = 8988
         self.max_q_size = 3
 
         self.initial_life = 20
@@ -35,6 +35,7 @@ class SockManager(threading.Thread):
         self.client_players = set()
 
         self.player_lives = {}
+
 
     def get_tcp_socket(self):
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -93,12 +94,16 @@ class SockManager(threading.Thread):
             3. Once each client has responded with OK
             4. Server sends initial life total
         """
+        # TODO: FIX THIS! A SINGLE CLIENT WILL STOP THE WHOLE SERVER IF SOMETHING IS WRONG
+
         for player in self.client_players:
             player.start_game()
 
         self.state = STATES.IN_GAME
         self.life_update()
-        # TODO: FIX THIS! A SINGLE CLIENT WILL STOP THE WHOLE SERVER IF SOMETHING IS WRONG
+
+        for player in self.client_players:
+            player.start()
 
     def life_update(self):
         """
@@ -119,6 +124,21 @@ class SockManager(threading.Thread):
         for player in self.client_players:
             player.life_update(json.dumps(self.player_lives))
 
+    def check_for_new_life(self):
+        # here we check for each players updated life
+        for player in self.client_players:
+
+            # new_life will be none if the user has not set their life
+            if player.new_life is not None:
+
+                # setting the players life
+                self.player_lives[player.client_name] = player.new_life
+
+                # resetting the new life to be None
+                player.new_life = None
+
+                self.life_update()
+
     def run(self):
         print("Starting server on port %s" % self.port)
         while True:
@@ -133,8 +153,8 @@ class SockManager(threading.Thread):
 
             elif self.state == STATES.IN_GAME:
                 print("IN GAME NOW")
+                self.check_for_new_life()
                 time.sleep(1)
-                continue
 
 
 class ClientHandler(threading.Thread):
@@ -148,6 +168,7 @@ class ClientHandler(threading.Thread):
         #       run
         #       FOR NOW ALL ACTIONS ON ALL CLIENTS WILL BE RAN SEQUENTIALLY AND WE
         #       ASSUME THEY ALL GO SMOOTHLY
+
         super(ClientHandler, self).__init__()
 
         self.port = 8989
@@ -156,8 +177,11 @@ class ClientHandler(threading.Thread):
         self.client_name = ''
         self.packet_len = 1024
 
+        self.new_life = None
+
     def run(self):
-        pass
+        while True:
+            self.receive_life()
 
     def host_game(self):
         """
@@ -178,7 +202,7 @@ class ClientHandler(threading.Thread):
 
         # 4. clients send the name of the player ( e.g: "Fargus" )
         # TODO: Error handling/ input validation
-        self.client_name = self.c.recv(self.packet_len).decode('utf-8')
+        self.client_name = self.recv()
 
         print('Client name ', self.client_name)
 
@@ -186,6 +210,8 @@ class ClientHandler(threading.Thread):
         self.send('OK')
 
         # When the user running the server starts the game, we will move to start game
+    def recv(self):
+        return self.c.recv(self.packet_len).decode('utf-8')
 
     def start_game(self):
         """
@@ -229,10 +255,28 @@ class ClientHandler(threading.Thread):
 
         # 5.
         self.recv_expect("OK")
-        pass
 
     def receive_life(self):
-        pass
+        """
+        Protocol:
+            1. listen for new life from client
+            2. client says NEW_LIFE
+            3. server says READY
+            4. client sends life as a positive integer
+            5. server sends new life to each player
+        """
+        # 2.
+        self.recv_expect("NEW_LIFE")
+
+        # 3.
+        self.send("READY")
+
+        # 4.
+        self.new_life = self.recv()
+        print("new life from %s: %s" % (self.client_name, self.new_life))
+
+        # 5.
+        self.send("OK")
 
     def send(self, msg):
         self.c.send(msg.encode('utf-8'))
