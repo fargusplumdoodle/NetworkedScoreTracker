@@ -1,11 +1,22 @@
+import re
+from collections import deque
 import select
 import json
 import sys
-from collections import deque
 import socket
 import time
 import threading
 
+"""
+    Network Score Application
+
+    Author: Isaac Thiessen Mar 2019
+
+    Plan:
+        1. Make system functional without error handling
+        2. Add error handling/player disconnects
+        
+"""
 
 class STATES:
     HOST_GAME = 0
@@ -14,12 +25,12 @@ class STATES:
 
 
 class SockManager(threading.Thread):
-    def __init__(self):
+    def __init__(self, port=8979):
         super(SockManager, self).__init__()
         self.q = deque()
         self.active_conns = set()
         self.num_clients_served = 0
-        self.port = 8988
+        self.port = port
         self.max_q_size = 3
 
         self.initial_life = 20
@@ -35,7 +46,6 @@ class SockManager(threading.Thread):
         self.client_players = set()
 
         self.player_lives = {}
-
 
     def get_tcp_socket(self):
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -69,7 +79,7 @@ class SockManager(threading.Thread):
             else:
                 client_info = self.q.pop()
 
-                ch = ClientHandler(client_info[0], client_info[1])
+                ch = ClientHandler(client_info[0], client_info[1], port=self.port)
 
                 # initiating start_game protocol with client
                 ch.host_game()
@@ -100,10 +110,11 @@ class SockManager(threading.Thread):
             player.start_game()
 
         self.state = STATES.IN_GAME
-        self.life_update()
 
         for player in self.client_players:
             player.start()
+
+        self.life_update()
 
     def life_update(self):
         """
@@ -152,14 +163,13 @@ class SockManager(threading.Thread):
                 self.start_game()
 
             elif self.state == STATES.IN_GAME:
-                print("IN GAME NOW")
                 self.check_for_new_life()
                 time.sleep(1)
 
 
 class ClientHandler(threading.Thread):
 
-    def __init__(self, client_soc, client_addr):
+    def __init__(self, client_soc, client_addr, port):
 
         # TODO: BIG TODO:
         #       Make every method here run on a seperate thread
@@ -170,18 +180,48 @@ class ClientHandler(threading.Thread):
         #       ASSUME THEY ALL GO SMOOTHLY
 
         super(ClientHandler, self).__init__()
-
-        self.port = 8989
+        self.port = port
         self.c = client_soc
         self.client_addr = client_addr
         self.client_name = ''
         self.packet_len = 1024
+
+        self.rec_life_soc = None
 
         self.new_life = None
 
     def run(self):
         while True:
             self.receive_life()
+
+    def establish_secondary_communication(self):
+        print("started second line protocol")
+        """
+        Here we create a new socket for recieving life from the client so
+        we dont get messages from the wrong protocol
+
+        Protocol:
+            1. server connects to client
+            2. client says "NEW_LINE"
+            3. server says "BOOYAH"
+        """
+        # sleeping for 1 second to give client time to set up server
+        time.sleep(1)
+        # 0. creating socket
+        self.rec_life_soc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+        # 1.
+        print("connecting to secondary line on port %s" % (self.port - 1))
+        self.rec_life_soc.connect((self.client_addr[0], self.port - 1))
+
+        # 2.
+        response = self.rec_life_soc.recv(self.packet_len).decode('utf-8')
+        if response != "NEW_LINE":
+            raise ValueError('Error: Invalid response from server, expecting %s got %s' % ("NEW_LINE", response))
+
+        # 3.
+        self.rec_life_soc.send("BOOYAH".encode("utf-8"))
+        print("Second line established with client")
 
     def host_game(self):
         """
@@ -210,6 +250,7 @@ class ClientHandler(threading.Thread):
         self.send('OK')
 
         # When the user running the server starts the game, we will move to start game
+
     def recv(self):
         return self.c.recv(self.packet_len).decode('utf-8')
 
@@ -220,13 +261,17 @@ class ClientHandler(threading.Thread):
                 1. client listens for the START_GAME signal
                 2. client says OK
             3. Once each client has responded with OK
-            4. Server sends initial life total
+            4. secondary line of communication established
+            5. Server sends initial life total
         """
         # 1.
         self.send("START_GAME")
 
         # 2.
         self.recv_expect("OK")
+
+        # 3.
+        self.establish_secondary_communication()
 
     def life_update(self, game_info):
         """
@@ -265,18 +310,22 @@ class ClientHandler(threading.Thread):
             4. client sends life as a positive integer
             5. server sends new life to each player
         """
+
         # 2.
-        self.recv_expect("NEW_LIFE")
+        self.recv_expect_line2("NEW_LIFE")
 
         # 3.
-        self.send("READY")
+        self.send_line2("READY")
 
         # 4.
-        self.new_life = self.recv()
+        new_life = self.recv_line2()
         print("new life from %s: %s" % (self.client_name, self.new_life))
+        self.print_proto("receive_life", 4)
 
         # 5.
-        self.send("OK")
+        self.send_line2("OK")
+
+        self.new_life = new_life
 
     def send(self, msg):
         self.c.send(msg.encode('utf-8'))
@@ -286,9 +335,23 @@ class ClientHandler(threading.Thread):
         if response != expected_msg:
             raise ValueError('Error: Invalid response from client, expecting %s got %s' % (expected_msg, response))
 
+    def send_line2(self, msg):
+        self.rec_life_soc.send(msg.encode('utf-8'))
+
+    def recv_expect_line2(self, expected_msg):
+        response = self.rec_life_soc.recv(self.packet_len).decode('utf-8')
+        if response != expected_msg:
+            raise ValueError('Error: Invalid response from client, expecting %s got %s' % (expected_msg, response))
+
+    def recv_line2(self):
+        return self.rec_life_soc.recv(self.packet_len).decode('utf-8')
+
+    def print_proto(self, protocol, step):
+        print("Protocol: %s %s" % (protocol, step))
+
 
 if __name__ == '__main__':
-    man = SockManager()
+    man = SockManager(int(sys.argv[1]))
     try:
         man.start()
         man.pre_game_handle_clients()

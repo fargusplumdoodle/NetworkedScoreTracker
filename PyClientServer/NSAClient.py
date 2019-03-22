@@ -1,13 +1,14 @@
 import socket
+import time
 import json
 import threading
 
 
 class NSAClient(threading.Thread):
-    def __init__(self, name):
+    def __init__(self, name, port=8979):
         super(NSAClient, self).__init__()
 
-        self.port = 8988
+        self.port = port
         self.packet_len = 1024
         self.server_addr = ('localhost', self.port)
         self.c = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -53,7 +54,8 @@ class NSAClient(threading.Thread):
                 1. client listens for the START_GAME signal
                 2. client says OK
             3. Once each client has responded with OK
-            4. Server sends initial life total
+            4. secondary line of communication established
+            5. Server sends initial life total
         """
         print("%s is Waiting for game to start" % self.name)
         # 1.
@@ -63,6 +65,9 @@ class NSAClient(threading.Thread):
         self.send("OK")
 
         # 3.
+        self.establish_secondary_communication()
+
+        # 4.
         self.in_game()
 
     def life_update(self):
@@ -81,7 +86,8 @@ class NSAClient(threading.Thread):
             5. each player responds with OK
             6. client goes to step 1.
         """
-        # 1.
+
+        # 2.
         self.recv_expect("LIFE_UPDATE")
 
         # 3.
@@ -93,7 +99,6 @@ class NSAClient(threading.Thread):
         # 5.
         self.send("OK")
 
-        # 6.
         print("LIFE UPDATE COMPLETE for %s" % self.name)
         for p in self.player_lives:
             print("     %s:%s" % (p, self.player_lives[p]))
@@ -107,19 +112,22 @@ class NSAClient(threading.Thread):
             4. client sends life as a positive integer
             5. server sends new life to each player
         """
-
         # 2.
-        self.send("NEW_LIFE")
+        self.send_line2("NEW_LIFE")
 
         # 3.
-        self.recv_expect("READY")
+        self.recv_expect_line2("READY")
 
         # 4.
-        self.send(str(new_life))
-        print("send life")
+        self.send_line2(str(new_life))
 
         # 5.
-        self.recv_expect("OK")
+        self.recv_expect_line2("OK")
+
+        print("SENT NEW LIFE")
+
+    def print_proto(self, protocol, step):
+        print("Protocol: %s %s" % (protocol, step))
 
     def recv_expect(self, expected_msg):
         """
@@ -130,12 +138,55 @@ class NSAClient(threading.Thread):
         if response != expected_msg:
             raise ValueError('Error: Invalid response from server, expecting %s got %s' % (expected_msg, response))
 
+    def recv_expect_line2(self, expected_msg):
+        """
+        Throws error if message is not what was expected
+        :param expected_msg: a string that we are expecting from server
+        """
+        response = self.send_life_soc.recv(self.packet_len).decode('utf-8')
+        if response != expected_msg:
+            raise ValueError('Error: Invalid response from server, expecting %s got %s' % (expected_msg, response))
+
     def send(self, msg):
         self.c.send(msg.encode('utf-8'))
+
+    def send_line2(self, msg):
+        self.send_life_soc.send(msg.encode('utf-8'))
 
     def run(self):
         while True:
             self.life_update()
+
+    def establish_secondary_communication(self):
+        """
+        Here we create a new socket for recieving life from the client so
+        we dont get messages from the wrong protocol
+
+        Protocol:
+            1. server connects to client
+            2. client says "NEW_LINE"
+            3. server says "BOOYAH"
+        """
+        # 0. creating socket
+        tmp_soc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+        # Binding to address
+        tmp_soc.bind(('0.0.0.0', self.port - 1))
+        tmp_soc.listen(1)  # No more than 1 connection
+
+        print("started second line protocol on port %s" % (self.port - 1))
+        # 1.
+        self.send_life_soc, server_addr = tmp_soc.accept()
+
+        # 2.
+        self.send_life_soc.send("NEW_LINE".encode('utf-8'))
+
+        # 3.
+        response = self.send_life_soc.recv(self.packet_len).decode('utf-8')
+        if response != "BOOYAH":
+            raise ValueError('Error: Invalid response from server, expecting %s got %s' % ("NEW_LINE", response))
+
+        print("Second line established with server")
 
     def in_game(self):
         # starting listening for new lives
@@ -143,15 +194,13 @@ class NSAClient(threading.Thread):
 
         while True:
             # get new life from player
-            new_life = input("Enter new life as a positive integer")
-            print("got life: %s however we havent implemented send life function" % new_life)
-
+            new_life = input("Enter new life as a positive integer: ")
             self.submit_life(new_life)
 
 
 if __name__ == '__main__':
     import sys
     try:
-        c = NSAClient(sys.argv[1])
+        c = NSAClient(sys.argv[1], port=int(sys.argv[2]))
     finally:
         c.c.close()
