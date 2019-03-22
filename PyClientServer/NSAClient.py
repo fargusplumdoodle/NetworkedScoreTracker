@@ -1,16 +1,23 @@
 import socket
+import json
+import threading
 
 
-class NSAClient(object):
+class NSAClient(threading.Thread):
     def __init__(self, name):
-        self.port = 7989
+        super(NSAClient, self).__init__()
+
+        self.port = 8989
         self.packet_len = 1024
         self.server_addr = ('localhost', self.port)
         self.c = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
         self.name = name
 
+        self.player_lives = {}
+
         self.join_game()
+        self.start_game()
 
     def join_game(self):
         """
@@ -48,10 +55,48 @@ class NSAClient(object):
             3. Once each client has responded with OK
             4. Server sends initial life total
         """
-        pass
+        print("%s is Waiting for game to start" % self.name)
+        # 1.
+        self.recv_expect("START_GAME")
+
+        # 2.
+        self.send("OK")
+
+        # 3.
+        self.in_game()
 
     def life_update(self):
-        pass
+        """
+        Protocol:
+            1. client listens for life update
+            2. server says LIFE_UPDATE
+            3. client says OK
+            4. send each client each players life total in JSON
+                - example:
+                    {
+                        "Isaac": 20,
+                        "Liyani": 4,
+                        "Dylan": 99
+                    }
+            5. each player responds with OK
+            6. client goes to step 1.
+        """
+        # 1.
+        self.recv_expect("LIFE_UPDATE")
+
+        # 3.
+        self.send("OK")
+
+        # 4. TODO: error handling, this is bad here
+        self.player_lives = json.loads(self.c.recv(1024).decode("utf-8"))
+
+        # 5.
+        self.send("OK")
+
+        # 6.
+        print("LIFE UPDATE COMPLETE for %s" % self.name)
+        for p in self.player_lives:
+            print("     %s:%s" % (p, self.player_lives[p]))
 
     def submit_life(self):
         pass
@@ -66,8 +111,23 @@ class NSAClient(object):
             raise ValueError('Error: Invalid response from server, expecting %s got %s' % (expected_msg, response))
 
     def send(self, msg):
-        msg = msg.encode('utf-8')
-        self.c.send(msg)
+        self.c.send(msg.encode('utf-8'))
+
+    def run(self):
+        while True:
+            self.life_update()
+
+    def in_game(self):
+        # starting listening for new lives
+        self.start()
+
+        while True:
+            # get new life from player
+            new_life = input("Enter new life as a positive integer")
+            print("got life: %s however we havent implemented send life function" % new_life)
+
+            # self.submit_life(new_life)
+
 
 if __name__ == '__main__':
     import sys
