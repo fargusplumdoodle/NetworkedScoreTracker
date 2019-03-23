@@ -33,6 +33,8 @@ class SockManager(threading.Thread):
         self.port = port
         self.max_q_size = 3
 
+        self.alternate_port_modifier = 1
+
         self.initial_life = 20
 
         self.s = self.get_tcp_socket()
@@ -79,7 +81,10 @@ class SockManager(threading.Thread):
             else:
                 client_info = self.q.pop()
 
-                ch = ClientHandler(client_info[0], client_info[1], port=self.port)
+                ch = ClientHandler(client_info[0], client_info[1], (self.port + self.alternate_port_modifier))
+
+                # incramenting alternate port modifier to ensure all secondary lines are running on different ports
+                self.alternate_port_modifier += 1
 
                 # initiating start_game protocol with client
                 ch.host_game()
@@ -168,19 +173,24 @@ class SockManager(threading.Thread):
 
 
 class ClientHandler(threading.Thread):
+    """
+    ClientHandler class for Network Score App
 
-    def __init__(self, client_soc, client_addr, port):
+    Each instance of this object is for communicating with a single client
+    2 lines of communication:
+        1. For sending life updates to client including the life total of each player
+            in the form of a json string
+        2. For receiving new life values from client
+
+    """
+
+    def __init__(self, client_soc, client_addr, secondary_port):
 
         # TODO: BIG TODO:
-        #       Make every method here run on a seperate thread
-        #       This will protect us against client disconnects, stopping our server
-        #       I suggest we incorporate states and make every function be called from
-        #       run
-        #       FOR NOW ALL ACTIONS ON ALL CLIENTS WILL BE RAN SEQUENTIALLY AND WE
-        #       ASSUME THEY ALL GO SMOOTHLY
+        #   ERROR HANDLING
 
         super(ClientHandler, self).__init__()
-        self.port = port
+        self.secondary_port = secondary_port
         self.c = client_soc
         self.client_addr = client_addr
         self.client_name = ''
@@ -211,8 +221,8 @@ class ClientHandler(threading.Thread):
         self.rec_life_soc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
         # 1.
-        print("connecting to secondary line on port %s" % (self.port - 1))
-        self.rec_life_soc.connect((self.client_addr[0], self.port - 1))
+        print("connecting to secondary line on port %s" % self.secondary_port)
+        self.rec_life_soc.connect((self.client_addr[0], self.secondary_port))
 
         # 2.
         response = self.rec_life_soc.recv(self.packet_len).decode('utf-8')
@@ -260,9 +270,10 @@ class ClientHandler(threading.Thread):
             For each client:
                 1. client listens for the START_GAME signal
                 2. client says OK
-            3. Once each client has responded with OK
+            3. Server sends port for secondary line of communication
             4. secondary line of communication established
-            5. Server sends initial life total
+            5. Once each client has responded with OK
+            6. Server sends initial life total
         """
         # 1.
         self.send("START_GAME")
@@ -271,7 +282,12 @@ class ClientHandler(threading.Thread):
         self.recv_expect("OK")
 
         # 3.
+        self.send(str(self.secondary_port))
+
+        # 4.
         self.establish_secondary_communication()
+
+        # 5/6 handled by parent function
 
     def life_update(self, game_info):
         """

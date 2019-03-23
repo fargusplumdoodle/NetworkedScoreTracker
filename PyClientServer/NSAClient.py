@@ -9,6 +9,7 @@ class NSAClient(threading.Thread):
         super(NSAClient, self).__init__()
 
         self.port = port
+        self.secondary_port = None
         self.packet_len = 1024
         self.server_addr = ('localhost', self.port)
         self.c = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -53,9 +54,10 @@ class NSAClient(threading.Thread):
             For each client:
                 1. client listens for the START_GAME signal
                 2. client says OK
-            3. Once each client has responded with OK
+            3. Server sends port for secondary line of communication
             4. secondary line of communication established
-            5. Server sends initial life total
+            5. Once each client has responded with OK
+            6. Server sends initial life total
         """
         print("%s is Waiting for game to start" % self.name)
         # 1.
@@ -63,6 +65,9 @@ class NSAClient(threading.Thread):
 
         # 2.
         self.send("OK")
+
+        # 3.
+        self.secondary_port = int(self.c.recv(1024).decode('utf-8'))
 
         # 3.
         self.establish_secondary_communication()
@@ -171,7 +176,7 @@ class NSAClient(threading.Thread):
         tmp_soc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
         # Binding to address
-        tmp_soc.bind(('0.0.0.0', self.port - 1))
+        tmp_soc.bind(('0.0.0.0', self.secondary_port))
         tmp_soc.listen(1)  # No more than 1 connection
 
         print("started second line protocol on port %s" % (self.port - 1))
