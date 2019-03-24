@@ -18,6 +18,8 @@ import threading
         
 """
 
+TIMEOUT = 5
+
 class STATES:
     HOST_GAME = 0
     IN_GAME = 1
@@ -52,6 +54,8 @@ class SockManager(threading.Thread):
     def get_tcp_socket(self):
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
+        s.settimeout(TIMEOUT)
+
         # Setting address info
         bind_address = ('0.0.0.0', self.port)
 
@@ -73,6 +77,7 @@ class SockManager(threading.Thread):
 
                     # this is to stop listening for new clients
                     c = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                    c.settimeout(TIMEOUT)
                     c.connect(('localhost', self.port))
                     c.send("DONE".encode('utf-8'))
                     # this works because this loop will stop running once the states have changed
@@ -219,6 +224,7 @@ class ClientHandler(threading.Thread):
         time.sleep(1)
         # 0. creating socket
         self.rec_life_soc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.rec_life_soc.settimeout(TIMEOUT)
 
         # 1.
         print("connecting to secondary line on port %s" % self.secondary_port)
@@ -365,6 +371,10 @@ class ClientHandler(threading.Thread):
     def print_proto(self, protocol, step):
         print("Protocol: %s %s" % (protocol, step))
 
+    def disconnect(self):
+        x = input("Disconnect? [y/N]: \m")
+        if x == "y":
+            exit(-3)
 
 if __name__ == '__main__':
     man = SockManager(int(sys.argv[1]))

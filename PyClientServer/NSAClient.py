@@ -12,7 +12,11 @@ class NSAClient(threading.Thread):
         self.secondary_port = None
         self.packet_len = 1024
         self.server_addr = ('localhost', self.port)
+
         self.c = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+        # setting client timeout for recievign
+        self.c.settimeout(10)
 
         self.name = name
 
@@ -201,6 +205,11 @@ class NSAClient(threading.Thread):
             # get new life from player
             new_life = input("Enter new life as a positive integer: ")
             self.submit_life(new_life)
+
+    def disconnect(self):
+        x = input("Disconnect? [y/N]: \m")
+        if x == "y":
+            exit(-3)
 
 
 if __name__ == '__main__':
