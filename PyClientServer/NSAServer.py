@@ -236,7 +236,9 @@ class ClientHandler(threading.Thread):
         super(ClientHandler, self).__init__()
         self.secondary_port = secondary_port
         self.c = client_soc
-        # self.c.settimeout(TIMEOUT)
+
+        self.c.settimeout(TIMEOUT)
+
         self.client_addr = client_addr
         self.client_name = ''
         self.packet_len = 1024
@@ -310,7 +312,13 @@ class ClientHandler(threading.Thread):
         # When the user running the server starts the game, we will move to start game
 
     def recv(self):
-        return self.c.recv(self.packet_len).decode('utf-8')
+        try:
+            msg = self.c.recv(self.packet_len).decode('utf-8')
+        except socket.timeout:
+            self.disconnected = True
+            print("Disconnecting", self.client_name, "timeout")
+            time.sleep(10)
+        return msg
 
     def start_game(self):
         """
@@ -384,7 +392,6 @@ class ClientHandler(threading.Thread):
         # 4.
         new_life = self.recv_line2()
         print("new life from %s: %s" % (self.client_name, self.new_life))
-        self.print_proto("receive_life", 4)
 
         # 5.
         self.send_line2("OK")
@@ -399,7 +406,13 @@ class ClientHandler(threading.Thread):
         self.c.send(msg.encode('utf-8'))
 
     def recv_expect(self, expected_msg):
-        response = self.c.recv(self.packet_len).decode('utf-8')
+        try:
+            response = self.c.recv(self.packet_len).decode('utf-8')
+        except socket.timeout:
+            self.disconnected = True
+            print("Disconnecting", self.client_name, "timeout")
+            response = "OH NOOOO"
+
         if response != expected_msg:
             print('Error: Invalid response from client, expecting %s got %s' % (expected_msg, response))
             self.disconnected = True
@@ -423,9 +436,6 @@ class ClientHandler(threading.Thread):
     def stop(self):
         self.c.close()
         exit(0)
-
-    def print_proto(self, protocol, step):
-        print("Protocol: %s %s" % (protocol, step))
 
     def disconnect(self):
         x = input("Disconnect? [y/N]: \m")

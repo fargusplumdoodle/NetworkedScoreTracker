@@ -207,9 +207,11 @@ class NSAClient(threading.Thread):
             self.submit_life(new_life)
 
     def disconnect(self):
-        x = input("Disconnect? [y/N]: \m")
+        x = input("Disconnect? [y/N]: ")
         if x == "y":
-            exit(-3)
+            print("sleeping for 10 seconds")
+            time.sleep(10)
+            # exit(-3)
 
 
 if __name__ == '__main__':
