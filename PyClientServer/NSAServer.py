@@ -20,6 +20,7 @@ import threading
 
 TIMEOUT = 5
 
+
 class STATES:
     HOST_GAME = 0
     IN_GAME = 1
@@ -30,11 +31,9 @@ class SockManager(threading.Thread):
     def __init__(self, port=8979):
         super(SockManager, self).__init__()
         self.q = deque()
-        self.active_conns = set()
         self.num_clients_served = 0
         self.port = port
         self.max_q_size = 3
-
         self.alternate_port_modifier = 1
 
         self.initial_life = 20
@@ -51,10 +50,13 @@ class SockManager(threading.Thread):
 
         self.player_lives = {}
 
+        # checking for disconnects
+        self.disconnect_checking_thread = threading.Thread(target=self.check_for_disconnects)
+        self.disconnect_checking_thread.start()
+
     def get_tcp_socket(self):
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-        s.settimeout(TIMEOUT)
 
         # Setting address info
         bind_address = ('0.0.0.0', self.port)
@@ -63,6 +65,10 @@ class SockManager(threading.Thread):
         s.bind(bind_address)
         s.listen(5)  # No more than 5 connections
         return s
+
+    def run_server(self):
+        self.start()
+        self.pre_game_handle_clients()
 
     def pre_game_handle_clients(self):
         while self.state == STATES.HOST_GAME:
@@ -143,7 +149,8 @@ class SockManager(threading.Thread):
             6. client goes to step 1.
         """
         for player in self.client_players:
-            player.life_update(json.dumps(self.player_lives))
+            if not player.disconnected:
+                player.life_update(json.dumps(self.player_lives))
 
     def check_for_new_life(self):
         # here we check for each players updated life
@@ -160,10 +167,42 @@ class SockManager(threading.Thread):
 
                 self.life_update()
 
+    def kick_player(self, client):
+        """
+        For removing disconnected clients, or just people who are jerks
+        :param client: ClientHandler object
+        """
+        print("KICKING PLAYER: ", client.client_name)
+        # deleting from life totals
+        self.player_lives[client.client_name] = "DISCONNECTED"
+
+        # removing from active connections
+        self.client_players.remove(client)
+
+        # ending thread
+        client.stop()
+
+        # informing the players, they will be disappointed
+        self.life_update()
+
+    def check_for_disconnects(self):
+        print("Checking for disconnects start")
+        while True:
+            # removing disconnected clients
+            kick = []
+            for client in self.client_players:
+                if client.disconnected:
+                    print("FOUND DISCONNECTED CLIENT")
+                    kick.append(client)
+
+            for dead_client in kick:
+                self.kick_player(dead_client)
+
+            time.sleep(0.3)
+
     def run(self):
         print("Starting server on port %s" % self.port)
         while True:
-
             if self.state == STATES.HOST_GAME:
                 self.host_game()
 
@@ -197,16 +236,21 @@ class ClientHandler(threading.Thread):
         super(ClientHandler, self).__init__()
         self.secondary_port = secondary_port
         self.c = client_soc
+        # self.c.settimeout(TIMEOUT)
         self.client_addr = client_addr
         self.client_name = ''
         self.packet_len = 1024
 
         self.rec_life_soc = None
 
+        self.disconnected = False
+
         self.new_life = None
 
     def run(self):
         while True:
+            if self.disconnected:
+                self.stop()
             self.receive_life()
 
     def establish_secondary_communication(self):
@@ -224,19 +268,17 @@ class ClientHandler(threading.Thread):
         time.sleep(1)
         # 0. creating socket
         self.rec_life_soc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.rec_life_soc.settimeout(TIMEOUT)
+        # self.rec_life_soc.settimeout(TIMEOUT)
 
         # 1.
         print("connecting to secondary line on port %s" % self.secondary_port)
         self.rec_life_soc.connect((self.client_addr[0], self.secondary_port))
 
         # 2.
-        response = self.rec_life_soc.recv(self.packet_len).decode('utf-8')
-        if response != "NEW_LINE":
-            raise ValueError('Error: Invalid response from server, expecting %s got %s' % ("NEW_LINE", response))
+        self.recv_expect_line2("NEW_LINE")
 
         # 3.
-        self.rec_life_soc.send("BOOYAH".encode("utf-8"))
+        self.send_line2("BOOYAH")
         print("Second line established with client")
 
     def host_game(self):
@@ -350,23 +392,37 @@ class ClientHandler(threading.Thread):
         self.new_life = new_life
 
     def send(self, msg):
+        if self.disconnected:
+            # we dont send things when we are disconnected
+            print("NOT SENDING MSG BECAUSE DISCONNECTED")
+            time.sleep(10)
         self.c.send(msg.encode('utf-8'))
 
     def recv_expect(self, expected_msg):
         response = self.c.recv(self.packet_len).decode('utf-8')
         if response != expected_msg:
-            raise ValueError('Error: Invalid response from client, expecting %s got %s' % (expected_msg, response))
+            print('Error: Invalid response from client, expecting %s got %s' % (expected_msg, response))
+            self.disconnected = True
 
     def send_line2(self, msg):
+        if self.disconnected:
+            # we dont send things when we are disconnected
+            print("NOT SENDING MSG BECAUSE DISCONNECTED")
+            time.sleep(10)
         self.rec_life_soc.send(msg.encode('utf-8'))
 
     def recv_expect_line2(self, expected_msg):
         response = self.rec_life_soc.recv(self.packet_len).decode('utf-8')
         if response != expected_msg:
-            raise ValueError('Error: Invalid response from client, expecting %s got %s' % (expected_msg, response))
+            print('Error: Invalid response from client, expecting %s got %s' % (expected_msg, response))
+            self.disconnected = True
 
     def recv_line2(self):
         return self.rec_life_soc.recv(self.packet_len).decode('utf-8')
+
+    def stop(self):
+        self.c.close()
+        exit(0)
 
     def print_proto(self, protocol, step):
         print("Protocol: %s %s" % (protocol, step))
@@ -374,13 +430,13 @@ class ClientHandler(threading.Thread):
     def disconnect(self):
         x = input("Disconnect? [y/N]: \m")
         if x == "y":
-            exit(-3)
+            self.disconnected = True
+
 
 if __name__ == '__main__':
     man = SockManager(int(sys.argv[1]))
     try:
-        man.start()
-        man.pre_game_handle_clients()
+        man.run_server()
     finally:
         man.s.close()
 

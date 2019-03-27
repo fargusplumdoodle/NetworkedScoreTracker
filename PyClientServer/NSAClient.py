@@ -16,7 +16,7 @@ class NSAClient(threading.Thread):
         self.c = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
         # setting client timeout for recievign
-        self.c.settimeout(10)
+        #self.c.settimeout(10)
 
         self.name = name
 
