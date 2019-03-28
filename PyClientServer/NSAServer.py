@@ -66,10 +66,10 @@ class SockManager(threading.Thread):
         self.disconnect_checking_thread = threading.Thread(target=self.check_for_disconnects)
         self.disconnect_checking_thread.start()
 
-
     def run_server(self):
         self.start()
         self.pre_game_handle_clients()
+
 
     def pre_game_handle_clients(self):
         while self.state == STATES.HOST_GAME:
@@ -315,6 +315,8 @@ class ClientHandler(threading.Thread):
     def recv(self):
         try:
             msg = self.c.recv(self.packet_len).decode('utf-8')
+            # removing non alphanumeric characters because java sends 2 wierd characters at the begginging of string
+            msg = re.sub(r'\W+', '', msg)
         except socket.timeout:
             self.disconnected = True
             print("Disconnecting", self.client_name, "timeout")
@@ -409,6 +411,10 @@ class ClientHandler(threading.Thread):
     def recv_expect(self, expected_msg):
         try:
             response = self.c.recv(self.packet_len).decode('utf-8')
+
+            # removing non alphanumeric characters because java sends 2 wierd characters at the begginging of string
+            response = re.sub(r'\W+', '', response)
+
         except socket.timeout:
             self.disconnected = True
             print("Disconnecting", self.client_name, "timeout")
@@ -427,12 +433,19 @@ class ClientHandler(threading.Thread):
 
     def recv_expect_line2(self, expected_msg):
         response = self.rec_life_soc.recv(self.packet_len).decode('utf-8')
+        # removing non alphanumeric characters because java sends 2 wierd characters at the begginging of string
+        response = re.sub(r'\W+', '', response)
         if response != expected_msg:
             print('Error: Invalid response from client, expecting %s got %s' % (expected_msg, response))
             self.disconnected = True
 
     def recv_line2(self):
-        return self.rec_life_soc.recv(self.packet_len).decode('utf-8')
+        response = self.rec_life_soc.recv(self.packet_len).decode('utf-8')
+
+        # removing non alphanumeric characters because java sends 2 wierd characters at the begginging of string
+        response = re.sub(r'\W+', '', response)
+
+        return response
 
     def stop(self):
         self.c.close()
