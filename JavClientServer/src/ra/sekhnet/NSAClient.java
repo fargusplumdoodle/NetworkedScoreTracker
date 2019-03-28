@@ -1,6 +1,7 @@
 //package ra.sekhnet.lab7;
 package ra.sekhnet;
 import java.io.*;
+import java.net.ServerSocket;
 import java.net.Socket;
 
 public class NSAClient extends Thread {
@@ -10,9 +11,14 @@ public class NSAClient extends Thread {
     private int packet_len = 1024;
     private String host = "localhost";
     private boolean verbose = true;
+
     private Socket c;
     private DataInputStream is = null;
     private DataOutputStream os = null;
+
+    private Socket submit_life_socket;
+    private DataInputStream submit_is = null;
+    private DataOutputStream submit_os = null;
 
     private String player_name;
     private boolean disconnected = false;
@@ -21,11 +27,25 @@ public class NSAClient extends Thread {
     public NSAClient(String name, int port) {
         this.player_name = name;
         this.port = port;
-        this.join_game();
+
+        try {
+            // creating socket and input/output streams
+            c = new Socket(host, port);
+
+            join_game();
+
+            print("JOINED GAME");
+
+            start_game();
+
+        } catch (java.io.IOException e) {
+            System.out.println("Error in socket");
+            disconnected = true;
+        }
 
     }
 
-    private void join_game() {
+    private void join_game() throws java.io.IOException{
        /*
         Protocol:
             1. server listens
@@ -38,15 +58,6 @@ public class NSAClient extends Thread {
 
         The client then waits for the game to start
         */
-
-        // 2.
-        try {
-            // creating socket and input/output streams
-            c = new Socket(host, port);
-        } catch (java.io.IOException e) {
-            System.out.println("Error in socket");
-            disconnected = true;
-        }
         // 3.
         recv_expect_main("READY");
 
@@ -56,42 +67,171 @@ public class NSAClient extends Thread {
         // 5.
         recv_expect_main("OK");
 
-        this.print("WOOOO WE JOINED THE GAME!!");
-
     }
 
+    private void start_game() throws java.io.IOException {
+        /*
+        Protocol:
+            For each client:
+                1. client listens for the START_GAME signal
+                2. client says OK
+            3. Server sends port for secondary line of communication
+            4. secondary line of communication established
+            5. Once each client has responded with OK
+            6. Server sends initial life total
+         */
+        // 1.
+        print("Waiting for start game signal");
 
-    private void send_main(String msg) {
-        try {
-            byte[] bytes_msg = msg.getBytes("UTF-8");
+        recv_expect_main("START_GAME");
+        print("start game");
 
-            os = new DataOutputStream(c.getOutputStream());
+        // 2.
+        send_main("OK");
+        print("sending ok");
 
-            os.writeUTF(msg);
+        // 3.
+        secondary_port = Integer.parseInt(recv_main());
 
-        } catch (java.io.UnsupportedEncodingException e) {
-            System.out.println("Unsupported encoding " + e.toString());
-        } catch (java.io.IOException e) {
-            System.out.println("IO Exception: " + e.toString());
+        print("Secondary port: " + secondary_port);
+
+        // 4.
+        establish_secondary_line_of_communication();
+
+        print("GOT THIS FAR");
+    }
+
+    private void establish_secondary_line_of_communication() throws java.io.IOException{
+        /*
+        Here we create a new socket for recieving life from the client so
+        we dont get messages from the wrong protocol
+
+        Protocol:
+            1. server connects to client
+            2. client says "NEW_LINE"
+            3. server says "BOOYAH"
+         */
+        // 0. Create server socket for game to connect too
+        ServerSocket serverSocket = new ServerSocket(secondary_port);
+
+        // 1.
+        submit_life_socket = serverSocket.accept();
+
+        // 2.
+        send_submit_life("NEW_LINE");
+
+        // 3.
+        recv_expect_submit("BOOYAH");
+    }
+
+    private void send_submit_life(String msg) throws java.io.IOException{
+        if (! this.disconnected) {
+            try {
+                // creating data output stream
+                submit_os = new DataOutputStream(submit_life_socket.getOutputStream());
+
+                // sending msg in UTF-8
+                submit_os.writeUTF(msg);
+
+            } catch (java.io.UnsupportedEncodingException e) {
+
+                // java made me put this here for some reason
+                System.out.println("Unsupported encoding " + e.toString());
+                this.disconnected = true;
+            }
+        } else {
+            this.print("Disconnected, not sending message");
         }
 
     }
 
-    private void recv_expect_main(String expected_msg) {
-        try {
+    private void send_main(String msg) throws java.io.IOException{
+        if (! this.disconnected) {
+            try {
+                // creating data output stream
+                os = new DataOutputStream(c.getOutputStream());
+
+                // sending msg in UTF-8
+                os.writeUTF(msg);
+
+            } catch (java.io.UnsupportedEncodingException e) {
+                // java made me put this here for some reason
+                System.out.println("Unsupported encoding " + e.toString());
+                this.disconnected = true;
+            }
+        } else {
+            this.print("Disconnected, not sending message");
+        }
+
+    }
+
+    private void recv_expect_submit(String expected_msg) throws java.io.IOException{
+        if (! this.disconnected) {
+            submit_is = new DataInputStream(
+                    new BufferedInputStream(submit_life_socket.getInputStream()));
+
+            byte[] bytes_msg = submit_is.readNBytes(expected_msg.length());
+
+            String msg = new String(bytes_msg, "UTF-8");
+
+            if (!expected_msg.equals(msg)) {
+                System.out.println("Error expecting '" + expected_msg + "' got '" + msg + "'");
+                disconnected = true;
+            }
+        } else {
+            this.print("Disconnected, not receiving message");
+        }
+    }
+
+    private void recv_expect_main(String expected_msg) throws java.io.IOException{
+        if (! this.disconnected) {
             is = new DataInputStream(
                     new BufferedInputStream(c.getInputStream()));
 
             byte[] bytes_msg = is.readNBytes(expected_msg.length());
 
             String msg = new String(bytes_msg, "UTF-8");
+
             if (!expected_msg.equals(msg)) {
                 System.out.println("Error expecting '" + expected_msg + "' got '" + msg + "'");
                 disconnected = true;
             }
-        } catch (java.io.IOException e) {
-            System.out.println(e.toString());
-            disconnected = true;
+        } else {
+            this.print("Disconnected, not receiving message");
+        }
+    }
+
+    private String recv_main() throws java.io.IOException{
+        if (! this.disconnected) {
+            is = new DataInputStream(
+                    new BufferedInputStream(c.getInputStream()));
+
+            int cont = 5;
+            String msg = "";
+
+            while (cont > 0) {
+                byte[] bytes_msg = is.readNBytes(1);
+
+                // when bytes is empty
+                if (bytes_msg.length == 0) {
+                    cont -= 1;
+                    try {
+                        Thread.sleep(200);
+                    } catch (java.lang.InterruptedException e ) {
+                        print(e.toString());
+                    }
+                } else {
+                    msg += new String(bytes_msg, "UTF-8");
+                }
+
+            }
+
+            print("Msg: " + msg);
+            return msg;
+
+        } else {
+            this.print("Disconnected, not receiving message");
+            return "";
         }
     }
 
@@ -101,6 +241,7 @@ public class NSAClient extends Thread {
             System.out.println(msg);
         }
     }
+
     public void run() {
         //TODO: finish this part yo
         try {

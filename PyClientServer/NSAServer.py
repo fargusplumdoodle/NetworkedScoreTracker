@@ -1,6 +1,5 @@
 import re
 from collections import deque
-import select
 import json
 import sys
 import socket
@@ -47,6 +46,7 @@ class SockManager(threading.Thread):
         self.port = port
         self.max_q_size = 3
         self.alternate_port_modifier = 1
+        self.max_players = 1
 
         self.initial_life = 20
 
@@ -76,13 +76,11 @@ class SockManager(threading.Thread):
             # First check if any active connections
             if (len(self.q)) == 0:
                 # NO active connections, wait a sec and try again
-                print("Queue empty, you have 3 seconds to start the game...")
-                i, o, e = select.select([sys.stdin], [], [], 3)
-                if i:
-                    print("user has instructed to start the game")
+                if len(self.client_players) >= self.max_players:
+                    print("Starting the game because the maximum number of players have joined")
                     self.state = STATES.STARTING_GAME
 
-                    # this is to stop listening for new clients
+                    # this is to stop listening for new clients        self.max_players = 1
                     c = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                     c.settimeout(TIMEOUT)
                     c.connect(('localhost', self.port))
