@@ -26,9 +26,21 @@ class STATES:
     IN_GAME = 1
     STARTING_GAME = 2
 
+def get_tcp_socket(port):
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+
+    # Setting address info
+    bind_address = ('0.0.0.0', port)
+
+    # Binding to address
+    s.bind(bind_address)
+    s.listen(5)  # No more than 5 connections
+    return s
+
 
 class SockManager(threading.Thread):
-    def __init__(self, port=8979):
+    def __init__(self, server_socket, port=8979):
         super(SockManager, self).__init__()
         self.q = deque()
         self.num_clients_served = 0
@@ -38,7 +50,7 @@ class SockManager(threading.Thread):
 
         self.initial_life = 20
 
-        self.s = self.get_tcp_socket()
+        self.s = server_socket
 
         # initializing as hosting game
         self.state = STATES.HOST_GAME
@@ -54,17 +66,6 @@ class SockManager(threading.Thread):
         self.disconnect_checking_thread = threading.Thread(target=self.check_for_disconnects)
         self.disconnect_checking_thread.start()
 
-    def get_tcp_socket(self):
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
-
-        # Setting address info
-        bind_address = ('0.0.0.0', self.port)
-
-        # Binding to address
-        s.bind(bind_address)
-        s.listen(5)  # No more than 5 connections
-        return s
 
     def run_server(self):
         self.start()
@@ -444,9 +445,10 @@ class ClientHandler(threading.Thread):
 
 
 if __name__ == '__main__':
-    man = SockManager(int(sys.argv[1]))
+    soc = get_tcp_socket(port=int(sys.argv[1]))
     try:
+        man = SockManager(soc, port=int(sys.argv[1]))
         man.run_server()
     finally:
-        man.s.close()
+        soc.close()
 
