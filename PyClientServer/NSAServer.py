@@ -392,7 +392,7 @@ class ClientHandler(threading.Thread):
 
         # 4.
         new_life = self.recv_line2()
-        print("new life from %s: %s" % (self.client_name, self.new_life))
+        print("new life from %s: %s" % (self.client_name, new_life))
 
         # 5.
         self.send_line2("OK")
