@@ -87,8 +87,8 @@ public class NSAClient extends Thread {
         print("start game");
 
         // 2.
-        send_main("OK");
         print("sending ok");
+        send_main("OK");
 
         // 3.
         secondary_port = Integer.parseInt(recv_main());
@@ -112,12 +112,15 @@ public class NSAClient extends Thread {
             3. server says "BOOYAH"
          */
         // 0. Create server socket for game to connect too
+        print("create socket");
         ServerSocket serverSocket = new ServerSocket(secondary_port);
 
         // 1.
+        print("waiting for connection on second socket");
         submit_life_socket = serverSocket.accept();
 
         // 2.
+        print("sending new line signal on new line");
         send_submit_life("NEW_LINE");
 
         // 3.
@@ -203,30 +206,24 @@ public class NSAClient extends Thread {
 
     private String recv_main() throws java.io.IOException{
         if (! this.disconnected) {
-            is = new DataInputStream(
-                    new BufferedInputStream(c.getInputStream()));
 
-            int cont = 5;
-            String msg = "";
+            is = new DataInputStream(new BufferedInputStream(c.getInputStream()));
 
-            while (cont > 0) {
-                byte[] bytes_msg = is.readNBytes(1);
-
-                // when bytes is empty
-                if (bytes_msg.length == 0) {
-                    cont -= 1;
-                    try {
-                        Thread.sleep(200);
-                    } catch (java.lang.InterruptedException e ) {
-                        print(e.toString());
-                    }
-                } else {
-                    msg += new String(bytes_msg, "UTF-8");
-                }
-
+            // waiting to ensure all bytes are received
+            // this can be tweaked if we end up not getting all of the message
+            try {
+                Thread.sleep(100);
+            } catch (java.lang.InterruptedException e) {
+                print(e.toString());
             }
 
-            print("Msg: " + msg);
+            int available_bytes = is.available();
+
+            // reading all available bytes
+            byte[] bytes_msg = is.readNBytes(available_bytes);
+
+            String msg = new String(bytes_msg, "UTF-8");
+
             return msg;
 
         } else {
