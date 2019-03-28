@@ -3,12 +3,16 @@ package ra.sekhnet;
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.Scanner;
 
 public class NSAClient extends Thread {
     // attributes
     private int port = 8979;
     private int secondary_port = 9897;
     private int packet_len = 1024;
+
+    private String life;
+
     private String host = "localhost";
     private boolean verbose = true;
 
@@ -32,6 +36,7 @@ public class NSAClient extends Thread {
             // creating socket and input/output streams
             c = new Socket(host, port);
 
+            // joining game
             join_game();
 
             print("JOINED GAME");
@@ -81,24 +86,37 @@ public class NSAClient extends Thread {
             6. Server sends initial life total
          */
         // 1.
-        print("Waiting for start game signal");
 
         recv_expect_main("START_GAME");
-        print("start game");
 
         // 2.
-        print("sending ok");
         send_main("OK");
 
         // 3.
         secondary_port = Integer.parseInt(recv_main());
 
-        print("Secondary port: " + secondary_port);
-
         // 4.
         establish_secondary_line_of_communication();
 
-        print("GOT THIS FAR");
+        // The game begins
+        in_game();
+    }
+
+    private void in_game() throws java.io.IOException{
+        // starting thread
+        // start();
+        // TODO: LIFE UPDATE CODE
+
+        while (true) {
+            // get new life from user, this will be different in app
+            Scanner scn = new Scanner(System.in);
+            print("Enter new life: ");
+
+            life = scn.nextLine();
+
+            submit_life();
+        }
+
     }
 
     private void establish_secondary_line_of_communication() throws java.io.IOException{
@@ -204,6 +222,59 @@ public class NSAClient extends Thread {
         }
     }
 
+    private void submit_life() throws java.io.IOException{
+        /*
+        This protocol runs on the submit life socket
+
+        Protocol:
+            1. listen for new life from client
+            2. client says NEW_LIFE
+            3. server says READY
+            4. client sends life as a positive integer
+            5. server says OK
+            6. server sends new life to each player
+         */
+
+        // 2.
+        send_submit_life("NEW_LIFE");
+
+        // 3.
+        recv_expect_submit("READY");
+
+        // 4.
+        send_submit_life(life);
+
+        // 5.
+        recv_expect_submit("OK");
+
+    }
+
+    private void life_update() throws java.io.IOException {
+        /*
+        Protocol:
+            1. client listens for life update
+            2. server says LIFE_UPDATE
+            3. client says OK
+            4. send each client each players life total in JSON
+                - example:
+                    {
+                        "Isaac": 20,
+                        "Liyani": 4,
+                        "Dylan": 99
+                    }
+            5. each player responds with OK
+            6. client goes to step 1.
+         */
+        // 2.
+        recv_expect_main("LIFE_UPDATE");
+
+        // 3.
+        send_main("OK");
+
+        // 4.
+
+    }
+
     private String recv_main() throws java.io.IOException{
         if (! this.disconnected) {
 
@@ -242,7 +313,7 @@ public class NSAClient extends Thread {
     public void run() {
         //TODO: finish this part yo
         try {
-            // running
+
         } catch (Exception e) {
             // caught exception
         }
