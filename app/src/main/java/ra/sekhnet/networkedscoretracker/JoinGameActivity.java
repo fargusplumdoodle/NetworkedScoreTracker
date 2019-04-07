@@ -27,35 +27,30 @@ public class JoinGameActivity extends AppCompatActivity {
         TextView playerNameTextView = (TextView) findViewById(R.id.playerNameLabelJoinGame);
         playerNameTextView.setText(playerName);
 
-
-        NSAClient c = new NSAClient("Manfish", "10.0.2.2", 12345);
-        c.start();
-
-        while (c.getSTATE() != 1) {
-            // if state isnt in game
-            try {
-                Thread.sleep(200);
-                Toast toast = Toast.makeText(getApplicationContext(), "Waiting for game", Toast.LENGTH_SHORT);
-                toast.show();
-            } catch (java.lang.InterruptedException e ){
-                continue;
-            }
-        }
-        Toast toast = Toast.makeText(getApplicationContext(), "DONE", Toast.LENGTH_SHORT);
-        toast.show();
-    }
-    @Override
-    protected void onStart(){
-        super.onStart();
-
         searchForGame();
+
     }
+
     public void searchForGame(){
         TextView status = (TextView) findViewById(R.id.gameSearchStatusLabel);
 
         status.setText("Searching for games");
 
-        // here we would search for games
+
+//        while (c.getSTATE() != 1) {
+//            // if state isnt in game
+//            try {
+//
+//                Thread.sleep(200);
+//                Toast toast = Toast.makeText(getApplicationContext(), "Waiting for game", Toast.LENGTH_SHORT);
+//                toast.show();
+//            } catch (java.lang.InterruptedException e ){
+//                continue;
+//            }
+//        }
+        System.out.println("Eyyy lmao");
+        Toast toast = Toast.makeText(getApplicationContext(), "DONE", Toast.LENGTH_SHORT);
+        toast.show();
 
         status.setText("Found game!\nWaiting for game to start.");
 

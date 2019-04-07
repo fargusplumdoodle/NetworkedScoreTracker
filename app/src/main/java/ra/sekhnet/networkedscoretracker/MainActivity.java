@@ -30,6 +30,7 @@ public class MainActivity extends AppCompatActivity {
                 "YerSitler",
                 "CorrinBilodeau",
                 "Manfish",
+                "Zebrafish9000automatic",
                 "Dordle",
                 "Fargus",
                 "Plumtastrophy",
@@ -59,11 +60,12 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void joinGame(View view){
-        Intent intent = new Intent(this, JoinGameActivity.class);
+        Intent intent = new Intent(this, inGameClientActivity.class);
         EditText playerNameEditText = (EditText) findViewById(R.id.PlayerNameEditText);
 
         // passing player name to newGame page
-        intent.putExtra(PLAYER_NAME, playerNameEditText.getText().toString());
+        intent.putExtra("PLAYER_NAME", playerNameEditText.getText().toString());
+        intent.putExtra("HOST_IP", "10.0.2.2");
         startActivity(intent);
     }
 }

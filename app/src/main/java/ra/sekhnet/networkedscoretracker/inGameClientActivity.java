@@ -1,8 +1,10 @@
 package ra.sekhnet.networkedscoretracker;
 
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.res.Resources;
 import android.os.Bundle;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.view.View;
 import android.view.WindowManager;
@@ -10,6 +12,8 @@ import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.Toast;
+
+import ra.sekhnet.NSAClient;
 
 public class inGameClientActivity extends AppCompatActivity {
 
@@ -21,6 +25,8 @@ public class inGameClientActivity extends AppCompatActivity {
     public String[] client_players;
     public String host_ip;
     public int[] client_health;
+    private NSAClient c = new NSAClient("Manfish", "10.0.2.2", 12345);
+    private boolean connected = false;
 
     private int START_HEALTH = 20;
 
@@ -55,10 +61,45 @@ public class inGameClientActivity extends AppCompatActivity {
             }
         }
 
-
         this.updatePlayerInfo();
         this.printGameInfo();
+        this.connectTOGame();
     }
+
+//    private boolean startGame(){
+//        if (c.getSTATE() == 1) {
+//            c.
+//        }
+//
+//    }
+    private boolean connectTOGame() {
+        if (c.getSTATE() == 0) {
+            c.start();
+        }
+        System.out.println("Connecting to game!");
+        while (c.getSTATE() != 1) {
+            // if state isnt in game
+            try {
+                Thread.sleep(200);
+                Toast toast = Toast.makeText(getApplicationContext(), "Waiting for game", Toast.LENGTH_SHORT);
+                toast.show();
+            } catch (java.lang.InterruptedException e ){
+                return c.getSTATE() == 1;
+            }
+        }
+        System.out.println("CONNECTED!");
+        try {
+            Thread.sleep(200);
+            Toast toast = Toast.makeText(getApplicationContext(), "CONNECTED, Waiting for game to start", Toast.LENGTH_SHORT);
+            toast.show();
+        } catch (java.lang.InterruptedException e ){
+            return c.getSTATE() == 1;
+        }
+
+        return c.getSTATE() == 1;
+    }
+
+
 
     private void getPlayersTEMP(){
         client_players = new String[] {"Liyani", "Dylan", "Cody", playerName};

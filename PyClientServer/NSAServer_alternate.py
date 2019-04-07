@@ -25,9 +25,9 @@ class STATES:
     IN_GAME = 1
     STARTING_GAME = 2
 
+
 def get_tcp_socket(port):
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
 
     # Setting address info
     bind_address = ('0.0.0.0', port)
@@ -261,26 +261,28 @@ class ClientHandler(threading.Thread):
         we dont get messages from the wrong protocol
 
         Protocol:
-            1. server connects to client
-            2. client says "NEW_LINE"
-            3. server says "BOOYAH"
+            1. client connects to server on secondary port
+            2. server says "NEW_LINE"
+            3. client says "BOOYAH"
         """
         # sleeping for 1 second to give client time to set up server
         time.sleep(1)
-        print(self.client_addr[0])
         # 0. creating socket
-        self.rec_life_soc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        # self.rec_life_soc.settimeout(TIMEOUT)
+        tmp_soc = get_tcp_socket(self.secondary_port)
 
         # 1.
-        print("connecting to secondary line on port %s" % self.secondary_port)
-        self.rec_life_soc.connect((self.client_addr[0], self.secondary_port))
+        print('waiting for client on second line')
+        self.rec_life_soc, addr = tmp_soc.accept()
 
         # 2.
-        self.recv_expect_line2("NEW_LINE")
+        print('waiting for client on second line')
+        # self.recv_expect_line2("NEW_LINE")
+        self.send_line2('NEW_LINE')
 
         # 3.
-        self.send_line2("BOOYAH")
+        # self.send_line2("BOOYAH")
+
+        self.recv_expect_line2("BOOYAH")
         print("Second line established with client")
 
     def host_game(self):
@@ -338,7 +340,7 @@ class ClientHandler(threading.Thread):
         self.send("START_GAME")
 
         # 2.
-        print('Sending Ok at START_GAME/2')
+        print('receiving Ok at START_GAME/2')
         self.recv_expect("OK")
 
         # 3.
