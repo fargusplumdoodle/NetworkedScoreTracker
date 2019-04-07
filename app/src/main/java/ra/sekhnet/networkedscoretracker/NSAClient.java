@@ -1,6 +1,7 @@
 //package ra.sekhnet.lab7;
 package ra.sekhnet;
 import java.io.*;
+import java.util.Arrays;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
@@ -32,27 +33,44 @@ public class NSAClient extends Thread {
     public ArrayList<String> players;
     public ArrayList<String> lifes;
 
+    public int STATE = 0;
+    /*
+    0 = joining game/ waiting for game to start
+    1 = in game!
+     */
 
-    public NSAClient(String name, int port) {
+
+    public NSAClient(String name, String host, int port) {
         this.player_name = name;
+        this.host = host;
         this.port = port;
 
+        /*
         try {
             // creating socket and input/output streams
-            c = new Socket(host, port);
+            //c = new Socket(host, port);
 
             // joining game
-            join_game();
+            //join_game();
 
-            print("JOINED GAME");
+            //print("JOINED GAME");
 
-            start_game();
+            //start_game();
 
         } catch (java.io.IOException e) {
             System.out.println("Error in socket");
             disconnected = true;
         }
+        */
 
+    }
+
+    public int getSTATE(){
+        return STATE;
+    }
+
+    public void setSTATE(int state){
+        STATE = state;
     }
 
     private void get_player_life_totals_from_json(String json) throws java.io.IOException{
@@ -140,12 +158,15 @@ public class NSAClient extends Thread {
          */
         // 1.
 
+        print("STARTGAME 1 " + disconnected);
         recv_expect_main("START_GAME");
 
+        print("STARTGAME 2 " + disconnected);
         // 2.
         send_main("OK");
 
         // 3.
+        print("STARTGAME 3 " + disconnected);
         secondary_port = Integer.parseInt(recv_main());
 
         // 4.
@@ -182,7 +203,7 @@ public class NSAClient extends Thread {
             3. server says "BOOYAH"
          */
         // 0. Create server socket for game to connect too
-        print("create socket");
+        print("create socket on " + secondary_port);
         ServerSocket serverSocket = new ServerSocket(secondary_port);
 
         // 1.
@@ -239,38 +260,90 @@ public class NSAClient extends Thread {
     }
 
     private void recv_expect_submit(String expected_msg) throws java.io.IOException{
-        if (! this.disconnected) {
-            submit_is = new DataInputStream(
-                    new BufferedInputStream(submit_life_socket.getInputStream()));
+        submit_is = new DataInputStream(new BufferedInputStream(c.getInputStream()));
 
-            // waiting to ensure all bytes are received
-            // this can be tweaked if we end up not getting all of the message
+        int bytes_recvd = 0;
+        int expected_bytes = expected_msg.length();
+        String msg = "";
+
+        // waiting to ensure all bytes are received
+        // this can be tweaked if we end up not getting all of the message
+        while(is.available() != 0) {
             try {
-                Thread.sleep(100);
+                Thread.sleep(500);
             } catch (java.lang.InterruptedException e) {
                 print(e.toString());
             }
-
-            int available_bytes = is.available();
-
-            // reading all available bytes
-            byte[] bytes_msg = new byte[available_bytes];
-            for (int i = 0; i < available_bytes; i++) {
-                bytes_msg[i] = is.readByte();
-            }
-
-            String msg = new String(bytes_msg, "UTF-8");
-
-            if (!expected_msg.equals(msg)) {
-                System.out.println("Error expecting '" + expected_msg + "' got '" + msg + "'");
-                disconnected = true;
-            }
-        } else {
-            this.print("Disconnected, not receiving message");
+            System.out.println("waiting submit is available: " + submit_is.available());
         }
+
+        while ( bytes_recvd <= expected_bytes) {
+            if (submit_is.available() == 0){
+
+                msg += (char) submit_is.readByte();
+                bytes_recvd += 1;
+
+                // checking if we have received expected message
+                if (msg.equals(expected_msg)) {
+                    return;
+                }
+
+            } else {
+                if (! msg.equals(expected_msg)) {
+                    disconnected = true;
+                    System.out.println("Error, no bytes avaliable");
+                    return;
+                }
+            }
+        }
+
+        System.out.println("end");
     }
 
-    private void recv_expect_main(String expected_msg) throws java.io.IOException{
+    private void recv_expect_main(String expected_msg) throws java.io.IOException {
+        is = new DataInputStream(new BufferedInputStream(c.getInputStream()));
+
+        int bytes_recvd = 0;
+        int expected_bytes = expected_msg.length();
+        String msg = "";
+
+        // waiting to ensure all bytes are received
+        // this can be tweaked if we end up not getting all of the message
+        while(is.available() == 0) {
+        //for (int i = 0; i < 10; i++){
+            try {
+                Thread.sleep(500);
+            } catch (java.lang.InterruptedException e) {
+                print(e.toString());
+            }
+            System.out.println("waiting main is available: " + is.available());
+        }
+
+        while ( bytes_recvd <= expected_bytes) {
+            if (is.available() != 0){
+
+                msg += (char) is.readByte();
+                bytes_recvd += 1;
+
+                // checking if we have received expected message
+                if (msg.equals(expected_msg)) {
+                    return;
+                }
+
+            } else {
+                if (! msg.equals(expected_msg)) {
+                    disconnected = true;
+                    System.out.println("Error, no bytes avaliable");
+                    return;
+                }
+            }
+        }
+
+        System.out.println("end");
+
+    }
+
+    private void recv_expect_main_old(String expected_msg) throws java.io.IOException{
         if (! this.disconnected) {
             is = new DataInputStream(
                     new BufferedInputStream(c.getInputStream()));
@@ -278,19 +351,33 @@ public class NSAClient extends Thread {
             // waiting to ensure all bytes are received
             // this can be tweaked if we end up not getting all of the message
             try {
-                Thread.sleep(100);
+                Thread.sleep(300);
             } catch (java.lang.InterruptedException e) {
                 print(e.toString());
             }
 
             int available_bytes = is.available();
+            int expected_bytes = expected_msg.length();
+            String msg = "";
 
-            // reading all available bytes
-            byte[] bytes_msg = new byte[available_bytes];
-            for (int i = 0; i < available_bytes; i++) {
+            byte[] bytes_msg = new byte[expected_bytes];
+            int i = 0;
+
+            //for (int i = 0; i < expected_bytes; i++) {
+            while (is.available() != 0) {
+                System.out.println("Bytes left: " + Integer.toString(is.available()) + " i:" + i);
                 bytes_msg[i] = is.readByte();
+
+                // converting what we have to bytes
+                msg = new String(Arrays.copyOfRange(bytes_msg, 0, i));
+
+                // checking if we have received expected message
+                if (msg.equals(expected_msg)) {
+                    return;
+                }
+                i++;
             }
-            String msg = new String(bytes_msg, "UTF-8");
+
 
             if (!expected_msg.equals(msg)) {
                 System.out.println("Error expecting '" + expected_msg + "' got '" + msg + "'");
@@ -407,11 +494,34 @@ public class NSAClient extends Thread {
     }
 
     public void run() {
+        // connecting to game
+        try {
+            c = new Socket(host, port);
+            join_game();
+        } catch (java.io.IOException e) {
+            disconnected = true;
+            e.printStackTrace();
+        }
+
+        print("CONNECTED WOOOOOOOO");
+
+        // starting game
+        try {
+            start_game();
+            STATE = 1;
+        } catch (java.io.IOException e) {
+            disconnected = true;
+            e.printStackTrace();
+        }
+
         while (true) {
-            try {
-                life_update();
-            } catch (java.io.IOException e) {
-                e.printStackTrace();
+            if (STATE == 1) {
+                try {
+                    life_update();
+                } catch (java.io.IOException e) {
+                    disconnected = true;
+                    e.printStackTrace();
+                }
             }
         }
     }

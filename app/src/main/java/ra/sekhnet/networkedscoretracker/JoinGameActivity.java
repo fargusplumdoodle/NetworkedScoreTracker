@@ -4,6 +4,9 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.widget.TextView;
+import android.widget.Toast;
+
+import ra.sekhnet.NSAClient;
 
 import static ra.sekhnet.networkedscoretracker.MainActivity.PLAYER_NAME;
 
@@ -23,6 +26,23 @@ public class JoinGameActivity extends AppCompatActivity {
         // setting player name
         TextView playerNameTextView = (TextView) findViewById(R.id.playerNameLabelJoinGame);
         playerNameTextView.setText(playerName);
+
+
+        NSAClient c = new NSAClient("Manfish", "10.0.2.2", 12345);
+        c.start();
+
+        while (c.getSTATE() != 1) {
+            // if state isnt in game
+            try {
+                Thread.sleep(200);
+                Toast toast = Toast.makeText(getApplicationContext(), "Waiting for game", Toast.LENGTH_SHORT);
+                toast.show();
+            } catch (java.lang.InterruptedException e ){
+                continue;
+            }
+        }
+        Toast toast = Toast.makeText(getApplicationContext(), "DONE", Toast.LENGTH_SHORT);
+        toast.show();
     }
     @Override
     protected void onStart(){

@@ -90,6 +90,7 @@ public class inGameClientActivity extends AppCompatActivity {
         setPlayerHealth(playerName, client_health[me] - 5);
         updateOwnHealth();
     }
+
     public void minusOne(View view){
         setPlayerHealth(playerName, client_health[me] - 1);
         updateOwnHealth();

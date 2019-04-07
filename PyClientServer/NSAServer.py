@@ -46,7 +46,7 @@ class SockManager(threading.Thread):
         self.port = port
         self.max_q_size = 3
         self.alternate_port_modifier = 1
-        self.max_players = 1
+        self.max_players = 2
 
         self.initial_life = 20
 
@@ -267,6 +267,7 @@ class ClientHandler(threading.Thread):
         """
         # sleeping for 1 second to give client time to set up server
         time.sleep(1)
+        print(self.client_addr[0])
         # 0. creating socket
         self.rec_life_soc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         # self.rec_life_soc.settimeout(TIMEOUT)
