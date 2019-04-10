@@ -461,6 +461,7 @@ class ClientHandler(threading.Thread):
 
 
 if __name__ == '__main__':
+    # port should be 8989 by default
     soc = get_tcp_socket(port=int(sys.argv[1]))
     try:
         man = SockManager(soc, port=int(sys.argv[1]))
