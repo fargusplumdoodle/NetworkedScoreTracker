@@ -1,4 +1,4 @@
-#NetworkedScoreApp
+# NetworkedScoreApp
 
 ### Final Project for mobile apps course.
 
