@@ -13,8 +13,13 @@ import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.Toast;
 
-import ra.sekhnet.NSAClient;
+import ra.sekhnet.networkedscoretracker.NSAClient;
 
+import static java.lang.System.exit;
+
+/*
+The client activity for using the NSAClient class to connect to the NSAServer
+ */
 public class inGameClientActivity extends AppCompatActivity {
 
     private String playerName;
@@ -25,7 +30,9 @@ public class inGameClientActivity extends AppCompatActivity {
     public String[] client_players;
     public String host_ip;
     public int[] client_health;
-    private NSAClient c = new NSAClient("Manfish", "10.0.2.2", 12345);
+
+    // 10.0.2.2 is the host loopback address.
+    private NSAClient c = new NSAClient("Manfish", "10.0.2.2", 8989);
     private boolean connected = false;
 
     private int START_HEALTH = 20;
@@ -38,8 +45,7 @@ public class inGameClientActivity extends AppCompatActivity {
         // making text input start minimized
         getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_HIDDEN);
 
-
-        // getting player name
+        // getting player name/host ip
         Intent intent = getIntent();
         playerName = intent.getStringExtra("PLAYER_NAME");
         host_ip = intent.getStringExtra("HOST_IP");
@@ -61,72 +67,84 @@ public class inGameClientActivity extends AppCompatActivity {
             }
         }
 
+        // doing the first update of player info
         this.updatePlayerInfo();
+
+        // displays a toast about the game
         this.printGameInfo();
-        this.connectTOGame();
+
+        // attempting to connect to the server
+        if (! this.connectToGame()) {
+            // crashing if unsuccessful
+            exit(-3);
+        };
     }
 
-//    private boolean startGame(){
-//        if (c.getSTATE() == 1) {
-//            c.
-//        }
-//
-//    }
-    private boolean connectTOGame() {
-        if (c.getSTATE() == 0) {
-            c.start();
-        }
-        System.out.println("Connecting to game!");
+    private boolean connectToGame() {
+        /*
+        This facilitates the NSAClients connecting to the server.
+
+        Will return false if unsuccessful, when the protocol completes
+        successfully the STATE will be 1
+         */
+        // starting join game activity
+        c.setSTATE(0);
+        c.start();
+
         while (c.getSTATE() != 1) {
-            // if state isnt in game
+            // waiting for game to connect
             try {
-                Thread.sleep(200);
-                Toast toast = Toast.makeText(getApplicationContext(), "Waiting for game", Toast.LENGTH_SHORT);
-                toast.show();
+                Thread.sleep(100);
             } catch (java.lang.InterruptedException e ){
-                return c.getSTATE() == 1;
+                break;
             }
         }
+
         System.out.println("CONNECTED!");
-        try {
-            Thread.sleep(200);
-            Toast toast = Toast.makeText(getApplicationContext(), "CONNECTED, Waiting for game to start", Toast.LENGTH_SHORT);
-            toast.show();
-        } catch (java.lang.InterruptedException e ){
-            return c.getSTATE() == 1;
-        }
+        Toast toast = Toast.makeText(getApplicationContext(), "CONNECTED, Waiting for game to start", Toast.LENGTH_SHORT);
+        toast.show();
+
 
         return c.getSTATE() == 1;
     }
 
-
-
     private void getPlayersTEMP(){
+        // Creates temporary players while the networking is configured
         client_players = new String[] {"Liyani", "Dylan", "Cody", playerName};
         client_health = new int[] {20, 20, 19, 20};
 
     }
 
     private void printGameInfo() {
+            // Makes a toast that displays the IP that we are connected too
             String msg = "Connected to: " + host_ip;
             Toast toast = Toast.makeText(getApplicationContext(), msg, Toast.LENGTH_SHORT);
             toast.show();
     }
 
     public void loseGame(View view){
+        // A shortcut for the user for when they lose
         setPlayerHealth(playerName, 0);
         updateOwnHealth();
         updatePlayerInfo();
     }
 
     public void submitHealth(View view){
+        // Sends life to server
+
         EditText life = (EditText) findViewById(R.id.lifeTotalEditText);
         int newHealth = Integer.parseInt(life.getText().toString());
+
         setPlayerHealth(playerName, newHealth);
+
+        // telling NSAClient we have new health
+        c.setLife(newHealth);
+
         updateOwnHealth();
         updatePlayerInfo();
     }
 
+    // The following methods are for the buttons that modify users life
     public void minusFive(View view){
         setPlayerHealth(playerName, client_health[me] - 5);
         updateOwnHealth();
@@ -148,11 +166,13 @@ public class inGameClientActivity extends AppCompatActivity {
     }
 
     private void updateOwnHealth(){
+        // This updates the health on the GUI of the user
         EditText ownHealth = (EditText) findViewById(R.id.lifeTotalEditText);
         ownHealth.setText(Integer.toString(getPlayerHealth(playerName)));
     }
 
     private int getPlayerHealth(String player){
+        // returns the health of a specific player
         for (int i = 0; i < client_players.length; i++){
             if (client_players[i].equals(player)){
                 return client_health[i];
@@ -163,6 +183,7 @@ public class inGameClientActivity extends AppCompatActivity {
     }
 
     private void setPlayerHealth(String player, int newHealth){
+        // sets the health of a specific player
         boolean done = false;
         for (int i = 0; i < client_players.length; i++){
             if (client_players[i].equals(player)){

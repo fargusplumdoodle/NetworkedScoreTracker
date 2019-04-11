@@ -6,7 +6,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import ra.sekhnet.NSAClient;
+import ra.sekhnet.networkedscoretracker.NSAClient;
 
 import static ra.sekhnet.networkedscoretracker.MainActivity.PLAYER_NAME;
 
@@ -36,21 +36,6 @@ public class JoinGameActivity extends AppCompatActivity {
 
         status.setText("Searching for games");
 
-
-//        while (c.getSTATE() != 1) {
-//            // if state isnt in game
-//            try {
-//
-//                Thread.sleep(200);
-//                Toast toast = Toast.makeText(getApplicationContext(), "Waiting for game", Toast.LENGTH_SHORT);
-//                toast.show();
-//            } catch (java.lang.InterruptedException e ){
-//                continue;
-//            }
-//        }
-        System.out.println("Eyyy lmao");
-        Toast toast = Toast.makeText(getApplicationContext(), "DONE", Toast.LENGTH_SHORT);
-        toast.show();
 
         status.setText("Found game!\nWaiting for game to start.");
 

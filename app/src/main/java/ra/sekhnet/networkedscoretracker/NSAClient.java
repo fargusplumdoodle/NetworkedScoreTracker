@@ -190,12 +190,37 @@ public class NSAClient extends Thread{
         print("STARTGAME 1 " + disconnected);
         recv_expect_main("START_GAME");
 
-        print("STARTGAME 2 " + disconnected);
         // 2.
+        /*
+        RIGHT HERE is where it stops executing.
+
+        Every time the log says:
+            "I/Choreographer: Skipped 88 frames!  The application may be doing too much work on its main thread."
+
+         It is clear that it skips past the following lines and then hangs in a receive function.
+
+         STARTGAME 2 <disconnected> is never printed to the screen.
+
+         This could be an issue with the amount of power my laptop has. Unfortunatley there is
+         no other way for me to test this. The Mac Mini has likely less power than my laptop.
+
+         */
+        print("STARTGAME 2 " + disconnected);
         send_main("OK");
+        print("SENDING ALOT OF OKS");
+
+        for (int i = 0; i < 5; i++) {
+            print("Waiting i: " + Integer.toString(i));
+            try {
+                Thread.sleep(100);
+            } catch (java.lang.InterruptedException e ){
+                continue;
+            }
+        }
 
         // 3.
         print("STARTGAME 3 " + disconnected);
+        // POSSIBLY HERE IS WHERE THE CODE BEGINS EXECUTING AGAIN
         secondary_port = Integer.parseInt(recv_main());
 
         // 4.
@@ -569,12 +594,13 @@ public class NSAClient extends Thread{
             // starting game
             try {
                 start_game();
+                STATE = 2;
             } catch (java.io.IOException e) {
                 disconnected = true;
                 e.printStackTrace();
             }
         }
-
+        print("MADE IT HERE!!!!!!!!!!!!!!!!!");
 //        while (true) {
 //            if (STATE == 1) {
 //                try {
