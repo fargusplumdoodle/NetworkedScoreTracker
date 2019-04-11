@@ -1,71 +1,77 @@
 //package ra.sekhnet.lab7;
-package ra.sekhnet;
+package ra.sekhnet.networkedscoretracker;
 import java.io.*;
-import java.util.Arrays;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
-import java.util.Scanner;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+/*
+NSA Client class!
+
+This is for connecting to the NetworkScoreApo server class through sockets.
+
+It operates on 2 lines of communication (sockets)
+
+1. handles all the connecting protocols and recieves life updates from the server
+2. sends new life totals to the server.
+
+ */
 public class NSAClient extends Thread{
-    // attributes
-    private int port = 8979;
+
+    //  ----  NETWORKING  ----
+
+    // Secondary port of for life updates, it is initialized here but will be set to whatever the
+    // server sends us
+    private int port = 8989;
     private int secondary_port = 9897;
 
-    private String life;
-
     private String host = "localhost";
-    private boolean verbose = true;
 
+    // declaring main socket and input/output streams
     private Socket c;
     private DataInputStream is = null;
     private DataOutputStream os = null;
 
+    // declaring secondary socket and input/output streams
     private Socket submit_life_socket;
     private DataInputStream submit_is = null;
     private DataOutputStream submit_os = null;
 
-    private String player_name;
+    // for the app to see the status of the NSAClient object
     public boolean disconnected = false;
+    public int STATE = 0;
+    /*
+    States:
+        0 = joining game/pre joining game
+        1 = waiting for game to start
+        2 = in game!
+     */
+
+
+    //  ---- GAME INFO ----
+
+    // Player information
+    private String life;
+    private String player_name;
 
     public ArrayList<String> players;
     public ArrayList<String> lifes;
 
-    public int STATE = 0;
-    /*
-    0 = joining game/pre joining game
-    1 = waiting for game to start
-    2 = in game!
-     */
+    private  boolean newLife = false;
 
+
+    // debugging output
+    private boolean verbose = true;
 
     public NSAClient(String name, String host, int port) {
         this.player_name = name;
         this.host = host;
         this.port = port;
-
-        /*
-        try {
-            // creating socket and input/output streams
-            //c = new Socket(host, port);
-
-            // joining game
-            //join_game();
-
-            //print("JOINED GAME");
-
-            //start_game();
-
-        } catch (java.io.IOException e) {
-            System.out.println("Error in socket");
-            disconnected = true;
-        }
-        */
-
     }
 
+    // For accessing status of object
     public int getSTATE(){
         return STATE;
     }
@@ -74,11 +80,25 @@ public class NSAClient extends Thread{
         STATE = state;
     }
 
-    private void get_player_life_totals_from_json(String json) throws java.io.IOException{
-        // Dont look at this function, trust it works
-        // i was very tired when writing, I have proved it works in my test senario
-        // with data coming from the Python server
+    public void setLife(int life) {
+        // User input is INT, we display the life as a string
+        this.life = Integer.toString(life);
 
+        // we set new life to true, so the in_game function will know to send it to the server
+        newLife = true;
+    }
+
+    private void get_player_life_totals_from_json(String json) throws java.io.IOException{
+        /*
+         So it turns out Java doesn't have a built in JSON parser, so I have to write one myself.
+         Things like this are part of why this project didn't work out. I didn't anticipate this.
+
+         Parameters:
+            String json: The JSON provided by the server in a life update
+
+          Returns:
+            Nothing. But it does set the lifetotals attributes
+         */
         ArrayList<String> playerLifeTMP = new ArrayList<String>();
 
         // validation
@@ -186,20 +206,33 @@ public class NSAClient extends Thread{
     }
 
     private void in_game() throws java.io.IOException{
+        /*
+        Waits for the setLife() function to be ran.
+
+        Once we have a new life we send it to the server.
+         */
+
         // starting thread
         this.start();
 
         while (true) {
-            // get new life from user, this will be different in app
-            Scanner scn = new Scanner(System.in);
-            print("Enter new life: ");
-
-            life = scn.nextLine();
-
+            // Waiting for change to life
+            while (! newLife) {
+                try {
+                    // no changes to life, we wait for 10 milliseconds
+                    Thread.sleep(10);
+                } catch (java.lang.InterruptedException e) {
+                    // Java made me do this
+                    continue;
+                }
+            }
+            // setting newLife to false and sending the new life to the server!
+            newLife = false;
             submit_life();
         }
 
     }
+
     private void establish_secondary_line_of_communication() throws java.io.IOException{
         /*
         Here we create a new socket for recieving life from the client so
@@ -233,6 +266,9 @@ public class NSAClient extends Thread{
 
     private void OLD_establish_secondary_line_of_communication() throws java.io.IOException{
         /*
+        This is prefered as it is the way the protocols where origionally written. However in
+        testing I am unable to connect directly to the emulator from my laptop.
+
         Here we create a new socket for recieving life from the client so
         we dont get messages from the wrong protocol
 
@@ -258,6 +294,9 @@ public class NSAClient extends Thread{
     }
 
     private void send_submit_life(String msg) throws java.io.IOException{
+        /*
+        Sends sends the life total on the submit life line.
+         */
         if (! this.disconnected) {
             try {
                 // creating data output stream
@@ -279,6 +318,9 @@ public class NSAClient extends Thread{
     }
 
     private void send_main(String msg) throws java.io.IOException{
+        /*
+        This sends data on the main line
+         */
         if (! this.disconnected) {
             try {
                 // creating data output stream
@@ -299,6 +341,15 @@ public class NSAClient extends Thread{
     }
 
     private void recv_expect_submit(String expected_msg) throws java.io.IOException{
+        /*
+        This waits for bytes in the Data input stream and reads them one by one, testing against
+        the expected message.
+
+        If the message it found matches the one we were expecting we exit and dont read the next
+        bytes as the server could be part of the next protocol.
+
+        Raises error if we dont recieve the right thing.
+         */
         submit_is = new DataInputStream(new BufferedInputStream(c.getInputStream()));
 
         int bytes_recvd = 0;
@@ -340,6 +391,15 @@ public class NSAClient extends Thread{
     }
 
     private void recv_expect_main(String expected_msg) throws java.io.IOException {
+        /*
+        This waits for bytes in the Data input stream and reads them one by one, testing against
+        the expected message.
+
+        If the message it found matches the one we were expecting we exit and dont read the next
+        bytes as the server could be part of the next protocol.
+
+        Raises error if we dont recieve the right thing.
+         */
         is = new DataInputStream(new BufferedInputStream(c.getInputStream()));
 
         int bytes_recvd = 0;
@@ -380,51 +440,6 @@ public class NSAClient extends Thread{
 
         System.out.println("end");
 
-    }
-
-    private void recv_expect_main_old(String expected_msg) throws java.io.IOException{
-        if (! this.disconnected) {
-            is = new DataInputStream(
-                    new BufferedInputStream(c.getInputStream()));
-
-            // waiting to ensure all bytes are received
-            // this can be tweaked if we end up not getting all of the message
-            try {
-                Thread.sleep(300);
-            } catch (java.lang.InterruptedException e) {
-                print(e.toString());
-            }
-
-            int available_bytes = is.available();
-            int expected_bytes = expected_msg.length();
-            String msg = "";
-
-            byte[] bytes_msg = new byte[expected_bytes];
-            int i = 0;
-
-            //for (int i = 0; i < expected_bytes; i++) {
-            while (is.available() != 0) {
-                System.out.println("Bytes left: " + Integer.toString(is.available()) + " i:" + i);
-                bytes_msg[i] = is.readByte();
-
-                // converting what we have to bytes
-                msg = new String(Arrays.copyOfRange(bytes_msg, 0, i));
-
-                // checking if we have received expected message
-                if (msg.equals(expected_msg)) {
-                    return;
-                }
-                i++;
-            }
-
-
-            if (!expected_msg.equals(msg)) {
-                System.out.println("Error expecting '" + expected_msg + "' got '" + msg + "'");
-                disconnected = true;
-            }
-        } else {
-            this.print("Disconnected, not receiving message");
-        }
     }
 
     private void submit_life() throws java.io.IOException{
@@ -495,6 +510,9 @@ public class NSAClient extends Thread{
     }
 
     private String recv_main() throws java.io.IOException{
+        /*
+        Just recieves any old message on the main line. Currently does not time out.
+         */
         if (! this.disconnected) {
 
             is = new DataInputStream(new BufferedInputStream(c.getInputStream()));
@@ -533,15 +551,20 @@ public class NSAClient extends Thread{
     }
 
     public void run() {
+        // this method behaves differently depending on the state
+
+        // state = 0 means we need to join game
         if (this.STATE == 0) {
             try {
                 this.join_game();
+                // once join game has completed we set the state to 1
                 STATE = 1;
             } catch (java.io.IOException e) {
                 disconnected = true;
                 e.printStackTrace();
             }
         }
+
         if (this.STATE == 1) {
             // starting game
             try {
@@ -552,7 +575,6 @@ public class NSAClient extends Thread{
             }
         }
 
-//
 //        while (true) {
 //            if (STATE == 1) {
 //                try {
