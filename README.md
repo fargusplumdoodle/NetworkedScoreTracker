@@ -30,4 +30,4 @@ So hopefully I dont fail this course. I still have put in more than 20 hours on 
 I have learned alot about Android development, planning projects, and Java. So fail or pass, this
 has been a valuable learning experience.
 
-- Isaac Thiessen 2019
+__Isaac Thiessen 2019__
