@@ -18,6 +18,7 @@ import threading
 """
 
 TIMEOUT = 200
+MAX_PLAYERS = 1
 
 
 class STATES:
@@ -46,7 +47,7 @@ class SockManager(threading.Thread):
         self.port = port
         self.max_q_size = 3
         self.alternate_port_modifier = 1
-        self.max_players = 1
+        self.max_players = MAX_PLAYERS
 
         self.initial_life = 20
 
